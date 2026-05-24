@@ -1,3 +1,5 @@
+import * as config from '#soop/config';
+
 // 스트리머 아이디
 const BJ_ID = 'niniming';
 
@@ -7,21 +9,20 @@ const COOKIE = ''
 // 비밀번호 방송이면 입력
 const PASSWORD = '';
 
-import * as config from '#soop/config';
-
 
 async function getLiveInfo(bjId) {
     const url = `${config.DOMAIN.live}/afreeca/player_live_api.php?bjid=${bjId}`;
 
     const body = new URLSearchParams({
         bid: bjId,
-//        bno: '0',
-//        pwd: PASSWORD,
+        bno: '0',
+        pwd: PASSWORD,
         ...config.BODY
     });
 
     const headers = {
         'Content-Type': 'application/x-www-form-urlencoded',
+        ...(COOKIE ? { Cookie: COOKIE } : {}),
     }
 
     const res = await fetch(url, {
@@ -30,13 +31,17 @@ async function getLiveInfo(bjId) {
         body
     });
 
+    if (!res.ok) {
+        return fakse;
+    }
+
     return res.json();
 }
 
 (async () => {
     const data = await getLiveInfo(BJ_ID);
 
-    console.log(data.RESULT);
+    console.log(data.CHANNEL?.RESULT);
     console.log(data.CHANNEL?.BNO);
     console.log(data.CHANNEL?.CHATNO);
     console.log(data.CHANNEL?.CHDOMAIN);

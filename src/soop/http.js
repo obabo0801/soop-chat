@@ -1,4 +1,4 @@
-async function request(url, options = {}) {
+export async function request(url, options = {}) {
     const {
         method = 'GET',
         headers = {},

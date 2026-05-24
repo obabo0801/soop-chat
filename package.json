@@ -1,0 +1,16 @@
+{
+  "name": "soop-chat",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "unjongjjing",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "inst": "^2.0.0"
+  },
+  "devDependencies": {}
+}

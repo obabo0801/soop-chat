@@ -8,7 +8,7 @@ export class SoopClient {
         this.options = options;
 
         this.domain = config.DOMAIN;
-        this.userAgent = config.AGENT;
+        this.userAgent = config.USER_AGENT;
         this.subtitle = config.SUBTITLE;
 
         this.socket = null;
@@ -19,21 +19,83 @@ export class SoopClient {
         this.events = new Map();
     }
 
-    async getLiveInfo(bjId) {
-    const url = (config.DOMAIN.live
-        + `/afreeca/player_live_api.php?bjid=${bjId}`
-    );
+    on(event, handler) {
+        if (!this.events.has(event)) {
+            this.events.set(event, []);
+        }
+    }
 
-    const body = new URLSearchParams({
-        bid: bjId,
-        bno: '0',
-        ...config.BODY
-    });
+    off(event, handler) {
+        const handlers = this.events.get(event)
+        this.events.set(
+            event,
+            handlers.filter(fn => fn !== handler)
+        );
+        return this;
+    }
 
-    return http.request(url, {
-        method: 'POST',
-        cookie: this.options.cookie,
-        body
-    });
-}
+    once(event, handler) {
+        const wrapper = payload => {
+            this.off(event, wrapper);
+            handler(payload);
+        }
+        this.on(event, wrapper);
+        return this;
+    }
+
+    emit(event, payload) {
+        const handlers = this.events.get(event)
+        for (const handler of handlers) {
+            try {
+                handler(payload);
+            } catch (error) {
+                console.error(error);
+            }
+        }
+    }
+
+    async connect(id = this.streamerId) {
+        if (!this.channel) {
+            await http.getLive(id);
+        }
+        
+        const domain = this.channel?.CHDOMAIN;
+
+        if (!domain) return false;
+
+        const url = domain.startsWith('ws')
+            ? `${domain}/Websocket`
+            : `wss://${domain}/Websocket`;
+        
+        const headers = {
+            'User-Agent': this.userAgent,
+            ...(this.options.cookie ? {
+                Cookie: this.options.cookie
+            } : {}),
+        };
+
+        this.socket = new WebSocket(url, ['chat'], {
+            headers
+        });
+
+        this.socket.on('open', () => {
+            console.log('채팅 서버 연결됨');
+        });
+
+        this.socket.on('message', data => {
+            console.log('RECV:', data.toString());
+        });
+
+        this.socket.on('close', (code, reason) => {
+            console.log('채팅 서버 종료:', code, reason.toString());
+        });
+
+        this.socket.on('error', error => {
+            console.log('채팅 서버 오류:', error.message);
+        });
+    }
+
+    disconnect() {
+        
+    }
 }

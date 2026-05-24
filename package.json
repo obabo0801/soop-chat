@@ -12,5 +12,8 @@
   "dependencies": {
     "inst": "^2.0.0"
   },
-  "devDependencies": {}
+  "devDependencies": {},
+  "imports": {
+    "#soop/*": "./src/soop/*.js"
+  }
 }

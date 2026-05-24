@@ -1,7 +1,7 @@
 import { WebSocket } from 'ws';
 
 import * as config from '#soop/config';
-import * as http from '#soop/http';
+import * as html from '#soop/html';
 
 export class SoopClient {
     constructor(options = {}) {
@@ -56,7 +56,9 @@ export class SoopClient {
 
     async connect(id = this.streamerId) {
         if (!this.channel) {
-            await http.getLive(id);
+            this.channel = await html.getLive(id, {
+                cookie: this.options.cookie
+            });
         }
         
         const domain = this.channel?.CHDOMAIN;

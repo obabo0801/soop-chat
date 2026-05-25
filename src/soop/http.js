@@ -114,6 +114,20 @@ export async function getSessionAllow(
     return data;
 }
 
+export function getChatUrl(channel = {}) {
+    const { CHDOMAIN, CHPT, BJID } = channel;
+
+    if (!CHDOMAIN || !CHPT) return false;
+
+    const port = `:${Number(CHPT) + 1}`;
+    const domain = `${CHDOMAIN}${port}`;
+
+    return (domain.startsWith('ws')
+        ? `${domain}/Websocket/${BJID}`
+        : `wss://${domain}/Websocket/${BJID}`
+    );
+}
+
 export async function getChatRule(
         userId, options = {}
     ) {

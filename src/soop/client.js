@@ -26,6 +26,9 @@ export class SoopClient {
         if (!this.events.has(event)) {
             this.events.set(event, []);
         }
+
+        this.events.get(event).push(handler);
+        return this;
     }
 
     off(event, handler) {
@@ -112,13 +115,9 @@ export class SoopClient {
             });
         }
         
-        const domain = this.channel?.CHDOMAIN;
+        const url = http.getChatUrl(this.channel);
 
-        if (!domain) return false;
-
-        const url = domain.startsWith('ws')
-            ? `${domain}/Websocket`
-            : `wss://${domain}/Websocket`;
+        if (!url) return false;
         
         const headers = {
             'User-Agent': this.userAgent,

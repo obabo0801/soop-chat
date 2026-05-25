@@ -2,7 +2,7 @@ import { SoopClient } from '#soop/client';
 import * as http from '#soop/http';
 
 // 스트리머 아이디
-const streamerId = 'maribyeol';
+const streamerId = '';
 
 // 필요하면 브라우저 쿠키 넣기
 const cookie = ''

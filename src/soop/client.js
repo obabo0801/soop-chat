@@ -55,7 +55,7 @@ export class SoopClient {
     }
 
     async login(userId, password, secondPassword = '') {
-        const result = await http.getLogin(
+        const result = await http.login(
             userId, password, {
             cookie: this.cookie
         });
@@ -76,7 +76,7 @@ export class SoopClient {
     }
 
     async secondLogin(userId, secondPassword) {
-        const result = await http.getSecondLogin(
+        const result = await http.secondLogin(
             userId, secondPassword, {
             cookie: this.cookie
         });
@@ -91,7 +91,7 @@ export class SoopClient {
     }
 
     async logout() {
-        await http.getLogout({
+        await http.logout({
             cookie: this.cookie
         });
 
@@ -101,10 +101,10 @@ export class SoopClient {
         return true;
     }
 
-    async connect(streamerId = this.streamerId) {
+    async connect(streamerId = this.streamerId, password = '') {
         if (!this.channel) {
-            this.channel = await http.getBroad(
-                streamerId, {
+            this.channel = await http.getLiveInfo(
+                streamerId, password, {
                 cookie: this.cookie
             });
         }

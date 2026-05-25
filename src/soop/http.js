@@ -1,20 +1,47 @@
 import * as config from '#soop/config';
 
-export async function getMyInfo(
-        options = {}
+export async function requestRaw(
+        url, options = {}
     ) {
-    const url = new URL(config.DOMAIN.event
-        + `/api/get_private_info.php`
-    );
+    let {
+        method = 'GET',
+        headers = {},
+        body,
+        cookie = ''
+    } = options;
 
-    url.searchParams.set('_', Date.now());
+    headers = {
+        'Content-Type': config.CONTENT_TYPE,
+        ...(cookie ? {
+            Cookie: cookieString(cookie)
+        } : {}),
+        'User-Agent': config.USER_AGENT,
+        ...headers,
+    }
 
-    const data =  await rejson(url, {
-        ...options,
-        method: 'GET'
+    const res = await fetch(url, {
+        method,
+        headers,
+        body
     });
 
-    return data?.CHANNEL;
+    if (!res.ok) return false;
+
+    return res;
+}
+
+export async function requestJson(
+        url, options = {}
+    ) {
+    const res = await requestRaw(url, options);
+
+    if (!res) return false;
+
+    const text = await res.text();
+
+    if (text) {
+        return JSON.parse(text);
+    }
 }
 
 export async function getStation(
@@ -24,7 +51,7 @@ export async function getStation(
         + `/api/${userId}/station`
     );
 
-    const data =  await rejson(url, {
+    const data =  await requestJson(url, {
         ...options,
         method: 'GET'
     });
@@ -32,7 +59,7 @@ export async function getStation(
     return data;
 }
 
-export async function getBroad(
+export async function getLiveInfo(
         userId, password = '', options = {}
     ) {
     const url = (config.DOMAIN.live
@@ -46,7 +73,7 @@ export async function getBroad(
         pwd: password
     });
 
-    const data =  await rejson(url, {
+    const data =  await requestJson(url, {
         ...options,
         method: 'POST',
         body
@@ -55,14 +82,31 @@ export async function getBroad(
     return data?.CHANNEL;
 }
 
-export async function getAuthTicket(
+export async function getPrivateInfo(
+        options = {}
+    ) {
+    const url = new URL(config.DOMAIN.event
+        + `/api/get_private_info.php`
+    );
+
+    url.searchParams.set('_', Date.now());
+
+    const data =  await requestJson(url, {
+        ...options,
+        method: 'GET'
+    });
+
+    return data?.CHANNEL;
+}
+
+export async function getSessionAllow(
         options = {}
     ) {
     const url = (config.DOMAIN.member
         + `/app/session_allow.php`
     );
 
-    const data =  await request(url, {
+    const data =  await requestRaw(url, {
         ...options,
         method: 'GET'
     });
@@ -82,7 +126,7 @@ export async function getChatRule(
         szAction: 'get'
     });
 
-    const data =  await request(url, {
+    const data =  await requestRaw(url, {
         method: 'POST',
         body
     });
@@ -103,7 +147,7 @@ export async function getMyPlus(
         szType: 'all'
     });
 
-    const data =  await request(url, {
+    const data =  await requestRaw(url, {
         ...options,
         method: 'GET',
         body
@@ -119,7 +163,7 @@ export async function getSection(
         + `/v1.1/channel/${userId}/${chip}`
     );
 
-    const data =  await request(url, {
+    const data =  await requestRaw(url, {
         ...options,
         method: 'GET',
     });
@@ -127,7 +171,7 @@ export async function getSection(
     return data;
 }
 
-export async function getLogin(
+export async function login(
         userId, password = '', options = {}
     ) {
     const url = (config.DOMAIN.login
@@ -154,7 +198,7 @@ export async function getLogin(
         )
     };
 
-    const res =  await request(url, {
+    const res =  await requestRaw(url, {
         ...options,
         method: 'POST',
         headers,
@@ -173,10 +217,12 @@ export async function getLogin(
     return { data, cookie };
 }
 
-export async function getSecondLogin(
+export async function secondLogin(
         userId, secondPassword = '', options = {}
     ) {
-    const url = config.DOMAIN.login + `/app/LoginAction.php`;
+    const url = (config.DOMAIN.login
+        + `/app/LoginAction.php`
+    );
 
     const body = new URLSearchParams({
         szWork: 'second_login',
@@ -197,7 +243,7 @@ export async function getSecondLogin(
         )
     };
 
-    const res = await request(url, {
+    const res = await requestRaw(url, {
         ...options,
         method: 'POST',
         headers,
@@ -216,10 +262,12 @@ export async function getSecondLogin(
     return { data, cookie };
 }
 
-export async function getLogout(options = {}) {
-    const url = config.DOMAIN.login + `/app/LogOut.php?szType=json`;
+export async function logout(options = {}) {
+    const url = (config.DOMAIN.login
+        + `/app/LogOut.php?szType=json`
+    );
 
-    const res = await request(url, {
+    const res = await requestRaw(url, {
         ...options,
         method: 'GET'
     });
@@ -277,48 +325,4 @@ export function cookieJson(cookie = '') {
         });
 
     return result;
-}
-
-export async function rejson(
-        url, options = {}
-    ) {
-    const res = await request(url, options);
-
-    if (!res) return false;
-
-    const text = await res.text();
-
-    if (text) {
-        return JSON.parse(text);
-    }
-}
-
-export async function request(
-        url, options = {}
-    ) {
-    const {
-        method = 'GET',
-        headers = {},
-        body,
-        cookie = ''
-    } = options;
-
-    const res = await fetch(url, {
-        method,
-        headers: {
-            'Content-Type': config.CONTENT_TYPE,
-            ...(cookie ? {
-                Cookie: cookieString(cookie)
-            } : {}),
-            'User-Agent': config.USER_AGENT,
-            ...headers,
-        },
-        body
-    });
-
-    if (!res.ok) {
-        return false;
-    }
-
-    return res;
 }

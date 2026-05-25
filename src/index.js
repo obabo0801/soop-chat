@@ -5,7 +5,7 @@ import * as http from '#soop/http';
 const streamerId = 'honeys2';
 
 // 필요하면 브라우저 쿠키 넣기
-const cookie = 'a'
+const cookie = ''
 
 // 비밀번호 방송이면 입력
 const password = '';
@@ -15,12 +15,13 @@ const password = '';
         cookie
     });
 
-//    await client.login('', '@');
+    await client.login('', '@');
 
-    const channl = await http.getBroad(streamerId, {
-        cookie
-//        cookie: client.cookie
+    const channl = await http.getBroad(streamerId, '', {
+        cookie: client.cookie
     });
+
+    console.log(channl?.UNICK);
 
 //    const channl = await http.getBroad(streamerId);
 //    client.channel = channl;

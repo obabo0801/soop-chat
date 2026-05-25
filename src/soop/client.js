@@ -64,10 +64,7 @@ export class SoopClient {
         }
 
         if (result.cookie) {
-            this.cookie = {
-                ...this.cookie,
-                ...result.cookie
-            }
+            this.cookie = result.cookie;
         }
 
         return result;

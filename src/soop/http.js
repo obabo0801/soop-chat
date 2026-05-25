@@ -152,7 +152,9 @@ export async function getLogin(
 
     if (!res) return false;
 
-    const cookie = parseCookie(readCookie(res));
+    const cookie = parseCookie(
+        res.headers.get('set-cookie')
+    );
 
     return { cookie };
 }
@@ -215,8 +217,6 @@ export async function request(
         body,
         cookie = ''
     } = options;
-
-    console.log(cookie,'#############');
 
     const res = await fetch(url, {
         method,

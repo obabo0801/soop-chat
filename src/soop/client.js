@@ -3,9 +3,6 @@ import { WebSocket } from 'ws';
 import * as config from '#soop/config';
 import * as http from '#soop/http';
 import * as packet from '#soop/packet';
-
-import * as handler from '#handler';
-
 import * as log from '#utils/log';
 
 export class SoopClient {
@@ -35,10 +32,12 @@ export class SoopClient {
 
     off(event, handler) {
         const handlers = this.events.get(event) || []
+
         this.events.set(
             event,
             handlers.filter(fn => fn !== handler)
         );
+
         return this;
     }
 
@@ -47,17 +46,19 @@ export class SoopClient {
             this.off(event, wrapper);
             handler(payload);
         }
+
         this.on(event, wrapper);
         return this;
     }
 
     emit(event, payload) {
         const handlers = this.events.get(event) || []
+
         for (const handler of handlers) {
             try {
                 handler(payload);
             } catch (error) {
-                console.error(error);
+                log.error(error);
             }
         }
     }
@@ -110,6 +111,8 @@ export class SoopClient {
     }
 
     async connect(streamerId = this.streamerId, password = '') {
+        this.streamerId = streamerId;
+
         if (!this.channel) {
             this.channel = await http.getLiveInfo(
                 streamerId, password, {
@@ -132,26 +135,60 @@ export class SoopClient {
         });
 
         this.socket.on('open', () => {
-            console.log('채팅 서버 연결됨');
-
             this.sendLogin();
 
             setTimeout(() => {
                 this.sendJoinChannel(password);
             }, 300);
+
+            this.emit('open');
         });
 
         this.socket.on('message', data => {
-            console.log('RECV:', data.toString());
+            const text = data.toString();
+            this.emit('packet', text);
         });
 
         this.socket.on('close', (code, reason) => {
-            console.log('채팅 서버 종료:', code, reason.toString());
+            const data = {
+                code,
+                reason: reason.toString()
+            };
+
+            this.emit('close', data);
         });
 
         this.socket.on('error', error => {
-            console.log('채팅 서버 오류:', error.message);
+            this.emit('error', error);
         });
+
+        return true;
+    }
+
+    startPing() {
+        this.stopPing();
+
+        this.ping = setInterval(() => {
+            this.sendPing();
+        }, 60000);
+    }
+
+    stopPing() {
+        if (!this.ping) {
+            return false;
+        }
+        
+        clearInterval(this.ping);
+        this.ping = null;
+    }
+
+    sendPing() {
+        if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+            return false;
+        }
+
+        this.sendRaw(makePing());
+        return true;
     }
 
     send(data) {
@@ -177,21 +214,14 @@ export class SoopClient {
         );
 
         return this.send(
-            packet.login(ticket, '', 0)
+            packet.login(ticket, '', 16)
         );
     }
 
     sendJoinChannel(password = '') {
-        const log = packet.joinLog({
+        const joinLog = packet.joinLog({
             password,
             authInfo: this.channel?.AUTH_INFO || this.channel?.auth_info || '',
-        });
-
-        console.log('JOIN:', {
-            chatNo: this.channel?.CHATNO,
-            fanTicket: this.channel?.FTK,
-            password,
-            log,
         });
 
         return this.send(
@@ -200,12 +230,17 @@ export class SoopClient {
                 this.channel?.FTK || '',
                 0,
                 password,
-                log
+                joinLog
             )
         );
     }
 
     disconnect() {
-        
+        if (!this.socket) return false;
+
+        this.socket.close();
+        this.socket = null;
+
+        return true;
     }
 }

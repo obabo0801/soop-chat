@@ -1,21 +1,9 @@
-const ESC = '\x1b';
-const TAB = '\x09';
-const FF = '\x0c';
-
-export const SVC = {
-    KEEPALIVE: 0,
-    LOGIN: 1,
-    JOIN_CHANNEL: 2,
-    CHAT: 5,
-};
-
-const DC1 = '\x11';
-const DC2 = '\x12';
+import * as config from '#soop/config';
 
 export function addInfo(data = {}) {
     return Object.entries(data)
         .filter(([, value]) => value !== undefined && value !== null && value !== '')
-        .map(([key, value]) => `${key}${DC1}${value}${DC2}`)
+        .map(([key, value]) => `${key}${config.DELIMITER.DC1}${value}${config.DELIMITER.DC2}`)
         .join('');
 }
 
@@ -58,11 +46,11 @@ function makeBody(fields = []) {
     const chunks = [];
 
     for (const field of fields) {
-        chunks.push(toBuffer(FF));
+        chunks.push(toBuffer(config.DELIMITER.FF));
         chunks.push(toBuffer(field));
     }
 
-    chunks.push(toBuffer(FF));
+    chunks.push(toBuffer(config.DELIMITER.FF));
 
     return Buffer.concat(chunks);
 }
@@ -71,8 +59,8 @@ export function makePacket(service, fields = []) {
     const body = makeBody(fields);
 
     const header = (
-        ESC
-        + TAB
+        config.DELIMITER.ESC
+        + config.DELIMITER.TAB
         + String(service).padStart(4, '0')
         + String(body.length).padStart(6, '0')
         + '00'
@@ -84,24 +72,24 @@ export function makePacket(service, fields = []) {
     ]);
 }
 
-export function login(ticket = '', nick = '', flag = 0) {
-    return makePacket(SVC.LOGIN, [
+export function login(ticket = '', nick = '', flag = 16) {
+    return makePacket(config.SVC.LOGIN, [
         ticket,
-        stringToUint(nick),
+        nick,
         flag
     ]);
 }
 
 export function joinChannel(chatNo, fanTicket = '', type = 0, password = '', log = '') {
-    return makePacket(SVC.JOIN_CHANNEL, [
+    return makePacket(config.SVC.JOIN_CHANNEL, [
         chatNo,
         fanTicket,
         type,
-        stringToUint(password),
+        password,
         log
     ]);
 }
 
 export function keepAlive() {
-    return makePacket(SVC.KEEPALIVE, []);
+    return makePacket(config.SVC.KEEPALIVE, []);
 }

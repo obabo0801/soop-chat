@@ -28,6 +28,31 @@ export const BODY = {
     is_revive: false
 };
 
+export const USER_FLAG = {
+    GUEST: 16,
+    QUICKVIEW: 1 << 19,
+    MOBILE_WEB: 1 << 23,
+};
+
+export function loginFlag(userFlag = 0) {
+    const flag = Number(String(userFlag).split('|')[0] || 0);
+
+    let result = USER_FLAG.GUEST;
+
+    if (flag & USER_FLAG.QUICKVIEW) {
+        result |= USER_FLAG.QUICKVIEW;
+    }
+
+    return result;
+}
+
+export const SVC = {
+    KEEPALIVE: 0,
+    LOGIN: 1,
+    JOIN_CHANNEL: 2,
+    CHAT: 5,
+};
+
 export const DELIMITER = {
     ESC: '\x1b\t',
     FF: '\x0c',

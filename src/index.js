@@ -1,5 +1,6 @@
 import { SoopClient } from '#soop/client';
 import * as http from '#soop/http';
+import * as log from '#utils/log';
 
 // 스트리머 아이디
 const streamerId = 'uunjong';
@@ -15,7 +16,6 @@ const password = 'a990519';
         cookie
     });
 
-
     const r = await http.getPrivateInfo({
         cookie: client.cookie
     });
@@ -25,5 +25,21 @@ const password = 'a990519';
     })
     client.channel = live;
 
+    client.on('open', () => {
+        log.info('open!!!');
+    });
+
+    client.on('packet', data => {
+        log.info('[PACKET]', data);
+    });
+
+    client.on('close', () => {
+        log.info('close!!!');
+    });
+
+
+    client.on('error', error => {
+        log.error('error!!!', error);
+    });
     await client.connect(streamerId, password);
 })();

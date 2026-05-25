@@ -7,10 +7,8 @@ export function addInfo(data = {}) {
         .join('');
 }
 
-export function joinLog({ password = '' } = {}) {
-    return addInfo({
-        pwd: password
-    });
+export function joinLog(password = '') {
+    return addInfo({ pwd: password });
 }
 
 function stringToUint(value = '') {

@@ -16,14 +16,10 @@ const password = '';
         cookie
     });
 
-
-    const r = await http.getPrivateInfo({
+    const info = await http.getPrivateInfo({
         cookie: client.cookie
     });
-
-    const f = await http.getMyPlus({
-        cookie: client.cookie
-    })
+    log.info(info);
 
     const live = await http.getLiveInfo(streamerId, password, {
         cookie: client.cookie

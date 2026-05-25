@@ -9,16 +9,13 @@ export class SoopClient {
     constructor(options = {}) {
         this.cookie = options.cookie;
 
-        this.domain = config.DOMAIN;
-        this.userAgent = config.USER_AGENT;
-        this.subtitle = config.SUBTITLE;
-
         this.socket = null;
         this.streamerId = null;
         this.userId = null;
         this.userList = new Map();
         this.channel = null;
         this.events = new Map();
+        this.ping = null;
     }
 
     on(event, handler) {
@@ -142,11 +139,6 @@ export class SoopClient {
 
         this.socket.on('open', () => {
             this.sendLogin();
-
-            setTimeout(() => {
-                this.sendJoinChannel(password);
-            }, 300);
-            
             this.startPing();
             this.emit('open');
         });
@@ -155,7 +147,7 @@ export class SoopClient {
             const parsed = packet.parse(data);
 
             if (parsed.service === config.SVC.LOGIN) {
-//                this.sendJoinChannel(password);
+                this.sendJoinChannel(password);
             }
 
             if (parsed.service === config.SVC.JOIN_CHANNEL) {
@@ -245,17 +237,13 @@ export class SoopClient {
     }
 
     sendJoinChannel(password = '') {
-        const joinLog = packet.joinLog({
-            password
-        });
-
         return this.send(
             packet.joinChannel(
                 this.channel?.CHATNO,
                 this.channel?.FTK || '',
                 0,
                 password,
-                joinLog
+                packet.joinLog(password)
             )
         );
     }

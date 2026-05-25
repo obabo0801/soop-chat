@@ -120,7 +120,6 @@ export class SoopClient {
         if (!url) return false;
         
         const headers = {
-            'User-Agent': this.userAgent,
             ...(this.cookie ? {
                 Cookie: http.cookieString(this.cookie)
             } : {})
@@ -136,7 +135,7 @@ export class SoopClient {
             this.sendLogin();
 
             setTimeout(() => {
-                this.sendJoinChannel();
+                this.sendJoinChannel(password);
             }, 300);
         });
 
@@ -180,13 +179,13 @@ export class SoopClient {
         );
     }
 
-    sendJoinChannel() {
+    sendJoinChannel(password = '') {
         return this.send(
             packet.joinChannel(
                 this.channel?.CHATNO,
                 this.channel?.FTK || '',
                 0,
-                '',
+                password,
                 ''
             )
         );

@@ -141,6 +141,7 @@ export class SoopClient {
                 this.sendJoinChannel(password);
             }, 300);
 
+            this.startPing();
             this.emit('open');
         });
 
@@ -150,12 +151,12 @@ export class SoopClient {
         });
 
         this.socket.on('close', (code, reason) => {
-            const data = {
+            this.stopPing();
+
+            this.emit('close', {
                 code,
                 reason: reason.toString()
-            };
-
-            this.emit('close', data);
+            });
         });
 
         this.socket.on('error', error => {
@@ -187,7 +188,9 @@ export class SoopClient {
             return false;
         }
 
-        this.sendRaw(makePing());
+        this.send(packet.keepAlive());
+
+        console.log('핑 보냄!');
         return true;
     }
 
@@ -238,6 +241,7 @@ export class SoopClient {
     disconnect() {
         if (!this.socket) return false;
 
+        this.stopPing();
         this.socket.close();
         this.socket = null;
 

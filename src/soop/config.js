@@ -54,7 +54,8 @@ export const SVC = {
 };
 
 export const DELIMITER = {
-    ESC: '\x1b\t',
+    ESC: '\x1b',
+    TAB: '\x09',
     FF: '\x0c',
     DC1: '\x11',
     DC2: '\x12',

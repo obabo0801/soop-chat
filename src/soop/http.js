@@ -51,12 +51,12 @@ export async function getStation(
         + `/api/${userId}/station`
     );
 
-    const data =  await requestJson(url, {
+    const json =  await requestJson(url, {
         ...options,
         method: 'GET'
     });
 
-    return data;
+    return json;
 }
 
 export async function getLiveInfo(
@@ -73,13 +73,13 @@ export async function getLiveInfo(
         pwd: password
     });
 
-    const data =  await requestJson(url, {
+    const json =  await requestJson(url, {
         ...options,
         method: 'POST',
         body
     });
 
-    return data?.CHANNEL;
+    return json?.CHANNEL;
 }
 
 export async function getPrivateInfo(
@@ -106,12 +106,12 @@ export async function getSessionAllow(
         + `/app/session_allow.php`
     );
 
-    const data =  await requestRaw(url, {
+    const raw =  await requestRaw(url, {
         ...options,
         method: 'GET'
     });
 
-    return data;
+    return raw;
 }
 
 export function getChatUrl(channel = {}) {
@@ -140,34 +140,28 @@ export async function getChatRule(
         szAction: 'get'
     });
 
-    const data =  await requestRaw(url, {
+    const json =  await requestJson(url, {
+        ...options,
         method: 'POST',
         body
     });
 
-    return data?.DATA;
+    return json?.DATA;
 }
 
 export async function getMyPlus(
         options = {}
     ) {
     const url = (config.DOMAIN.live
-        + `/api/myplus/preferbjOnLnbController'
-        + '.php?isForce=n&szType=all`
+        + '/api/myplus/preferbjOnLnbController.php'
     );
 
-    const body = new URLSearchParams({
-        isForce: 'n',
-        szType: 'all'
-    });
-
-    const data =  await requestRaw(url, {
+    const json = await requestJson(url, {
         ...options,
-        method: 'GET',
-        body
+        method: 'GET'
     });
 
-    return data?.DATA;
+    return json?.DATA;
 }
 
 export async function getSection(
@@ -212,20 +206,20 @@ export async function login(
         )
     };
 
-    const res =  await requestRaw(url, {
+    const raw =  await requestRaw(url, {
         ...options,
         method: 'POST',
         headers,
         body
     });
 
-    if (!res) return false;
+    if (!raw) return false;
 
-    const text = await res.text();
+    const text = await raw.text();
     const data = JSON.parse(text);
 
     const cookie = cookieJson(
-        readCookie(res)
+        readCookie(raw)
     );
 
     return { data, cookie };
@@ -257,20 +251,20 @@ export async function secondLogin(
         )
     };
 
-    const res = await requestRaw(url, {
+    const raw = await requestRaw(url, {
         ...options,
         method: 'POST',
         headers,
         body
     });
 
-    if (!res) return false;
+    if (!raw) return false;
 
-    const text = await res.text();
+    const text = await raw.text();
     const data = JSON.parse(text);
 
     const cookie = cookieJson(
-        readCookie(res)
+        readCookie(raw)
     );
 
     return { data, cookie };
@@ -281,22 +275,22 @@ export async function logout(options = {}) {
         + `/app/LogOut.php?szType=json`
     );
 
-    const res = await requestRaw(url, {
+    const raw = await requestRaw(url, {
         ...options,
         method: 'GET'
     });
 
-    return !!res;
+    return !!raw;
 }
 
-export function readCookie(res) {
-    const cookies = res.headers.getSetCookie?.();
+export function readCookie(data) {
+    const cookies = data.headers.getSetCookie?.();
 
     if (Array.isArray(cookies) && cookies.length > 0) {
         return cookies;
     }
 
-    const cookie = res.headers.get('set-cookie');
+    const cookie = data.headers.get('set-cookie');
     
     return cookie ? [cookie] : [];
 }
@@ -332,8 +326,12 @@ export function cookieJson(cookie = '') {
             const index = v.indexOf('=');
             if (index <= 0) return;
 
-            const key = v.slice(0, index).trim();
-            const value = v.slice(index + 1).trim();
+            const key = v.slice(
+                0, index
+            ).trim();
+            const value = v.slice(
+                index + 1
+            ).trim();
 
             result[key] = value;
         });

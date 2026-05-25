@@ -75,7 +75,7 @@ export function makePacket(service, fields = []) {
 export function login(ticket = '', nick = '', flag = 16) {
     return makePacket(config.SVC.LOGIN, [
         ticket,
-        nick,
+        stringToUint(nick),
         flag
     ]);
 }
@@ -85,7 +85,7 @@ export function joinChannel(chatNo, fanTicket = '', type = 0, password = '', log
         chatNo,
         fanTicket,
         type,
-        password,
+        stringToUint(password),
         log
     ]);
 }

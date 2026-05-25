@@ -20,6 +20,10 @@ const password = 'a990519';
         cookie: client.cookie
     });
 
+    const f = await http.getMyPlus({
+        cookie: client.cookie
+    })
+
     const live = await http.getLiveInfo(streamerId, password, {
         cookie: client.cookie
     })

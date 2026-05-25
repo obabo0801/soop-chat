@@ -54,25 +54,57 @@ export class SoopClient {
         }
     }
 
-    async login(userId, password) {
-        const result = await http.getLogin(userId, password, {
+    async login(userId, password, secondPassword = '') {
+        const result = await http.getLogin(
+            userId, password, {
             cookie: this.cookie
         });
 
-        if (!result) {
-            return false;
+        if (!result) return false;
+
+        if (result.data.RESULT === -11) {
+            return await this.secondLogin(
+                userId, secondPassword
+            );
         }
 
-        if (result.cookie) {
+        if (result.cookie?.AuthTicket) {
             this.cookie = result.cookie;
         }
 
         return result;
     }
 
+    async secondLogin(userId, secondPassword) {
+        const result = await http.getSecondLogin(
+            userId, secondPassword, {
+            cookie: this.cookie
+        });
+
+        if (!result) return false;
+
+        if (result.cookie?.AuthTicket) {
+            this.cookie = result.cookie;
+        }
+
+        return result;
+    }
+
+    async logout() {
+        await http.getLogout({
+            cookie: this.cookie
+        });
+
+        this.cookie = '';
+        this.channel = null;
+
+        return true;
+    }
+
     async connect(streamerId = this.streamerId) {
         if (!this.channel) {
-            this.channel = await http.getBroad(streamerId, {
+            this.channel = await http.getBroad(
+                streamerId, {
                 cookie: this.cookie
             });
         }

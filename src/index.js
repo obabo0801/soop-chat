@@ -15,16 +15,18 @@ const password = '';
         cookie
     });
 
-    await client.login('', '@');
-
-    const channl = await http.getBroad(streamerId, '', {
+    await client.login('', '@', '@');
+    
+    let channl = await http.getBroad(streamerId, '', {
         cookie: client.cookie
     });
+    
+    channl = await http.getBroad(streamerId, '', {
+        cookie: client.cookie
+    });
+    client.channel = channl;
 
     console.log(channl?.UNICK);
-
-//    const channl = await http.getBroad(streamerId);
-//    client.channel = channl;
 
 //    await client.connect(streamerId);
 })();

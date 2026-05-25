@@ -104,8 +104,7 @@ export async function getSection(
         userId, chip = '', options = {}
     ) {
     const url = (config.DOMAIN.channel
-        + `/v1.1/channel/${userId}`
-        + `/home/section/${chip}`
+        + `/v1.1/channel/${userId}/${chip}`
     );
 
     const data =  await request(url, {
@@ -131,7 +130,7 @@ export async function getLogin(
         isSaveId: false,
         szScriptVar: 'oLoginRet',
         szAction: '',
-        isLoginRetain: 'Y'
+        isLoginRetain: 'N'
     });
 
     const headers = {
@@ -152,11 +151,68 @@ export async function getLogin(
 
     if (!res) return false;
 
-    const cookie = parseCookie(
-        res.headers.get('set-cookie')
+    const text = await res.text();
+    const data = JSON.parse(text);
+
+    const cookie = cookieJson(
+        readCookie(res)
     );
 
-    return { cookie };
+    return { data, cookie };
+}
+
+export async function getSecondLogin(
+        userId, secondPassword = '', options = {}
+    ) {
+    const url = config.DOMAIN.login + `/app/LoginAction.php`;
+
+    const body = new URLSearchParams({
+        szWork: 'second_login',
+        szType: 'json',
+        szUid: userId,
+        szPassword: secondPassword,
+        isSaveId: false,
+        szScriptVar: 'oLoginRet',
+        isLoginRetain: 'N'
+    });
+
+    const headers = {
+        'User-Agent': config.USER_AGENT,
+        'Origin': config.DOMAIN.login,
+        'Referer': (
+            config.DOMAIN.login
+            + '/afreeca/login.php'
+        )
+    };
+
+    const res = await request(url, {
+        ...options,
+        method: 'POST',
+        headers,
+        body
+    });
+
+    if (!res) return false;
+
+    const text = await res.text();
+    const data = JSON.parse(text);
+
+    const cookie = cookieJson(
+        readCookie(res)
+    );
+
+    return { data, cookie };
+}
+
+export async function getLogout(options = {}) {
+    const url = config.DOMAIN.login + `/app/LogOut.php?szType=json`;
+
+    const res = await request(url, {
+        ...options,
+        method: 'GET'
+    });
+
+    return !!res;
 }
 
 export function readCookie(res) {
@@ -171,25 +227,42 @@ export function readCookie(res) {
     return cookie ? [cookie] : [];
 }
 
-export function parseCookie(cookie = '') {
-    const result = {};
+export function cookieString(cookie = {}) {
+    if (!cookie) return '';
 
-    const cookies = String(cookie || '')
-        .split(/,(?=\s*[^;,=\s]+=)/);
-
-    for (const cookie of cookies) {
-        const first = cookie.split(';')[0];
-        const index = first.indexOf('=');
-
-        if (index <= 0) continue;
-
-        const key = first.slice(0, index).trim();
-        const value = first.slice(index + 1).trim();
-
-        if (!key) continue;
-
-        result[key] = decodeURIComponent(value);
+    if (typeof cookie === 'string') {
+        return cookie;
     }
+
+    return Object.entries(cookie)
+        .map(([key, value]) => `${key}=${value}`)
+        .join('; ');
+}
+
+export function cookieJson(cookie = '') {
+    if (!cookie) return {};
+
+    const result = {};
+    const cookies = (
+        Array.isArray(cookie)
+        ? cookie : [cookie]
+    );
+
+    cookies
+        .flatMap(v => String(v)
+            .split(/,(?=\s*[^;,=\s]+=)/)
+        )
+        .map(v => v.split(';')[0].trim())
+        .filter(Boolean)
+        .forEach(v => {
+            const index = v.indexOf('=');
+            if (index <= 0) return;
+
+            const key = v.slice(0, index).trim();
+            const value = v.slice(index + 1).trim();
+
+            result[key] = value;
+        });
 
     return result;
 }
@@ -222,7 +295,9 @@ export async function request(
         method,
         headers: {
             'Content-Type': config.CONTENT_TYPE,
-            ...(cookie ? { Cookie: cookie } : {}),
+            ...(cookie ? {
+                Cookie: cookieString(cookie)
+            } : {}),
             ...headers,
         },
         body

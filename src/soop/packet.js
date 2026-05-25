@@ -75,7 +75,7 @@ export function makePacket(service, fields = []) {
 export function login(ticket = '', nick = '', flag = 16) {
     return makePacket(config.SVC.LOGIN, [
         ticket,
-        stringToUint(nick),
+        nick,
         flag
     ]);
 }
@@ -85,11 +85,56 @@ export function joinChannel(chatNo, fanTicket = '', type = 0, password = '', log
         chatNo,
         fanTicket,
         type,
-        stringToUint(password),
+        password,
         log
     ]);
 }
 
 export function keepAlive() {
     return makePacket(config.SVC.KEEPALIVE, []);
+}
+
+export function parse(data) {
+    const raw = Buffer.isBuffer(data)
+        ? data.toString('utf8')
+        : String(data);
+
+    const head = config.DELIMITER.ESC + config.DELIMITER.TAB;
+    const offset = raw.startsWith(head) ? head.length : 0;
+
+    const service = Number(raw.slice(offset, offset + 4));
+    const length = Number(raw.slice(offset + 4, offset + 10));
+    const flag = raw.slice(offset + 10, offset + 12);
+    const body = raw.slice(offset + 12);
+
+    const fields = body
+        .split(config.DELIMITER.FF)
+        .filter(Boolean);
+
+    return {
+        service,
+        length,
+        flag,
+        fields,
+        raw
+    };
+}
+
+export function visible(data) {
+    return String(data)
+        .replaceAll(config.DELIMITER.ESC, '<ESC>')
+        .replaceAll(config.DELIMITER.TAB, '<TAB>')
+        .replaceAll(config.DELIMITER.FF, '<FF>')
+        .replaceAll(config.DELIMITER.DC1, '<DC1>')
+        .replaceAll(config.DELIMITER.DC2, '<DC2>');
+}
+
+export function requestUserList() {
+    return makePacket(config.SVC.CHUSER, []);
+}
+
+export function info(synAck = '') {
+    return makePacket(config.SVC.INFO, [
+        synAck
+    ]);
 }

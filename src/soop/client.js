@@ -110,6 +110,12 @@ export class SoopClient {
         return true;
     }
 
+    sendInfo(synAck = '') {
+        return this.send(
+            packet.info(synAck)
+        );
+    }
+
     async connect(streamerId = this.streamerId, password = '') {
         this.streamerId = streamerId;
 
@@ -137,17 +143,26 @@ export class SoopClient {
         this.socket.on('open', () => {
             this.sendLogin();
 
-            setTimeout(() => {
-                this.sendJoinChannel(password);
-            }, 300);
-
             this.startPing();
             this.emit('open');
         });
 
         this.socket.on('message', data => {
-            const text = data.toString();
-            this.emit('packet', text);
+            const parsed = packet.parse(data);
+
+            if (parsed.service === config.SVC.LOGIN) {
+                this.sendJoinChannel();
+            }
+
+            if (parsed.service === config.SVC.JOIN_CHANNEL) {
+                const synAck = parsed.fields[6];
+
+                if (this.cookie) {
+                    this.sendInfo(synAck);
+                }
+            }
+
+            this.emit('packet', parsed);
         });
 
         this.socket.on('close', (code, reason) => {
@@ -164,6 +179,12 @@ export class SoopClient {
         });
 
         return true;
+    }
+
+    requestUserList() {
+        return this.send(
+            packet.requestUserList()
+        );
     }
 
     startPing() {
@@ -189,8 +210,6 @@ export class SoopClient {
         }
 
         this.send(packet.keepAlive());
-
-        console.log('핑 보냄!');
         return true;
     }
 

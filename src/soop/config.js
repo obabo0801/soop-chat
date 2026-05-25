@@ -50,7 +50,10 @@ export const SVC = {
     KEEPALIVE: 0,
     LOGIN: 1,
     JOIN_CHANNEL: 2,
+    CHUSER: 4,
     CHAT: 5,
+    INFO: 12,
+    CHUSER_EXTEND: 127,
 };
 
 export const DELIMITER = {

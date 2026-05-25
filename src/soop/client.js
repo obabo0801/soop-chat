@@ -1,7 +1,7 @@
 import { WebSocket } from 'ws';
 
 import * as config from '#soop/config';
-import * as html from '#soop/html';
+import * as http from '#soop/http';
 
 export class SoopClient {
     constructor(options = {}) {
@@ -54,9 +54,9 @@ export class SoopClient {
         }
     }
 
-    async connect(id = this.streamerId) {
+    async connect(streamerId = this.streamerId) {
         if (!this.channel) {
-            this.channel = await html.getLive(id, {
+            this.channel = await http.getLive(streamerId, {
                 cookie: this.options.cookie
             });
         }
@@ -73,7 +73,7 @@ export class SoopClient {
             'User-Agent': this.userAgent,
             ...(this.options.cookie ? {
                 Cookie: this.options.cookie
-            } : {}),
+            } : {})
         };
 
         this.socket = new WebSocket(url, ['chat'], {

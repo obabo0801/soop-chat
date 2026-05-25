@@ -1,5 +1,5 @@
 import { SoopClient } from '#soop/client';
-import * as html from '#soop/html';
+import * as http from '#soop/http';
 
 // 스트리머 아이디
 const streamerId = 'niniming';
@@ -15,8 +15,12 @@ const password = '';
         cookie
     });
 
-    const channl = await html.getLive(streamerId);
-    client.channel = channl;
+    const result = await http.getLogin('', '');
 
-    await client.connect(streamerId);
+    console.log(result?.headers?.getSetCookie?.());
+
+//    const channl = await http.getBroad(streamerId);
+//    client.channel = channl;
+
+//    await client.connect(streamerId);
 })();

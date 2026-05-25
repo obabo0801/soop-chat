@@ -1,6 +1,9 @@
 export const DOMAIN = {
+    login: 'https://login.sooplive.com',
     live: 'https://live.sooplive.com',
-    chapi: 'https://chapi.sooplive.com'
+    member: 'https://member.sooplive.com',
+    chapi: 'https://chapi.sooplive.com',
+    channel: 'https://api-channel.sooplive.com',
 };
 
 export const CONTENT_TYPE = (
@@ -41,5 +44,5 @@ export const SUBTITLE = {
     4: { label: '中文 简体', code: 'zh_CN' },
     5: { label: '日本語', code: 'ja_JP' },
     6: { label: 'Tiếng Việt', code: 'vi_VN' },
-    7: { label: 'Indonesia', code: 'id_ID' },
+    7: { label: 'Indonesia', code: 'id_ID' }
 }

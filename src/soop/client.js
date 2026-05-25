@@ -143,6 +143,10 @@ export class SoopClient {
         this.socket.on('open', () => {
             this.sendLogin();
 
+            setTimeout(() => {
+                this.sendJoinChannel(password);
+            }, 300);
+            
             this.startPing();
             this.emit('open');
         });
@@ -151,7 +155,7 @@ export class SoopClient {
             const parsed = packet.parse(data);
 
             if (parsed.service === config.SVC.LOGIN) {
-                this.sendJoinChannel();
+//                this.sendJoinChannel(password);
             }
 
             if (parsed.service === config.SVC.JOIN_CHANNEL) {
@@ -242,8 +246,7 @@ export class SoopClient {
 
     sendJoinChannel(password = '') {
         const joinLog = packet.joinLog({
-            password,
-            authInfo: this.channel?.AUTH_INFO || this.channel?.auth_info || '',
+            password
         });
 
         return this.send(

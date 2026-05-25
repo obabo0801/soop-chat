@@ -3,7 +3,7 @@ import * as http from '#soop/http';
 import * as log from '#utils/log';
 
 // 스트리머 아이디
-const streamerId = 'maribyeol';
+const streamerId = '';
 
 // 필요하면 브라우저 쿠키 넣기
 const cookie = ''

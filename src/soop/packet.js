@@ -7,13 +7,9 @@ export function addInfo(data = {}) {
         .join('');
 }
 
-export function joinLog({ password = '', authInfo = '' } = {}) {
+export function joinLog({ password = '' } = {}) {
     return addInfo({
-        pwd: password,
-        auth_info: authInfo,
-        pver: 2,
-        access_system: 'html5',
-        nation_lang: 'ko_KR',
+        pwd: password
     });
 }
 

@@ -5,7 +5,7 @@ import * as http from '#soop/http';
 
 export class SoopClient {
     constructor(options = {}) {
-        this.options = options;
+        this.cookie = options.cookie;
 
         this.domain = config.DOMAIN;
         this.userAgent = config.USER_AGENT;
@@ -54,10 +54,29 @@ export class SoopClient {
         }
     }
 
+    async login(userId, password) {
+        const result = await http.getLogin(userId, password, {
+            cookie: this.cookie
+        });
+
+        if (!result) {
+            return false;
+        }
+
+        if (result.cookie) {
+            this.cookie = {
+                ...this.cookie,
+                ...result.cookie
+            }
+        }
+
+        return result;
+    }
+
     async connect(streamerId = this.streamerId) {
         if (!this.channel) {
-            this.channel = await http.getLive(streamerId, {
-                cookie: this.options.cookie
+            this.channel = await http.getBroad(streamerId, {
+                cookie: this.cookie
             });
         }
         
@@ -71,8 +90,8 @@ export class SoopClient {
         
         const headers = {
             'User-Agent': this.userAgent,
-            ...(this.options.cookie ? {
-                Cookie: this.options.cookie
+            ...(this.cookie ? {
+                Cookie: this.cookie
             } : {})
         };
 

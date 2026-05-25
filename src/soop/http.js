@@ -11,7 +11,7 @@ export async function getStation(
         'User-Agent': config.USER_AGENT
     };
 
-    const data =  await request(url, {
+    const data =  await rejson(url, {
         ...options,
         method: 'GET',
         headers
@@ -34,7 +34,7 @@ export async function getBroad(
         pwd: password
     });
 
-    const data =  await request(url, {
+    const data =  await rejson(url, {
         ...options,
         method: 'POST',
         body
@@ -124,35 +124,78 @@ export async function getLogin(
     );
 
     const body = new URLSearchParams({
-        ...config.BODY,
         szWork: 'login',
         szType: 'json',
         szUid: userId,
         szPassword: password,
         isSaveId: false,
-        isSavePw: false,
-        isSaveJoin: false,
+        szScriptVar: 'oLoginRet',
+        szAction: '',
         isLoginRetain: 'Y'
     });
 
     const headers = {
-        'User-Agent': config.USER_AGENT
+        'User-Agent': config.USER_AGENT,
+        'Origin': config.DOMAIN.login,
+        'Referer': (
+            config.DOMAIN.login
+            + '/afreeca/login.php'
+        )
     };
 
-    const data =  await request(url, {
+    const res =  await request(url, {
         ...options,
         method: 'POST',
         headers,
         body
     });
 
-    return data;
+    if (!res) return false;
+
+    const cookie = parseCookie(readCookie(res));
+
+    return { cookie };
+}
+
+export function readCookie(res) {
+    const cookies = res.headers.getSetCookie?.();
+
+    if (Array.isArray(cookies) && cookies.length > 0) {
+        return cookies;
+    }
+
+    const cookie = res.headers.get('set-cookie');
+    
+    return cookie ? [cookie] : [];
+}
+
+export function parseCookie(cookie = '') {
+    const result = {};
+
+    const cookies = String(cookie || '')
+        .split(/,(?=\s*[^;,=\s]+=)/);
+
+    for (const cookie of cookies) {
+        const first = cookie.split(';')[0];
+        const index = first.indexOf('=');
+
+        if (index <= 0) continue;
+
+        const key = first.slice(0, index).trim();
+        const value = first.slice(index + 1).trim();
+
+        if (!key) continue;
+
+        result[key] = decodeURIComponent(value);
+    }
+
+    return result;
 }
 
 export async function rejson(
         url, options = {}
     ) {
-    const res = request(url, options);
+    const res = await request(url, options);
 
     if (!res) return false;
 
@@ -172,6 +215,8 @@ export async function request(
         body,
         cookie = ''
     } = options;
+
+    console.log(cookie,'#############');
 
     const res = await fetch(url, {
         method,

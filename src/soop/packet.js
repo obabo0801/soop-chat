@@ -1,4 +1,58 @@
-import * as config from '#soop/config';
+import { DELIMITER } from '#soop/config';
+
+function toBuffer(value = '') {
+    if (Buffer.isBuffer(value)) {
+        return value;
+    }
+
+    if (value instanceof Uint8Array) {
+        return Buffer.from(value);
+    }
+
+    return Buffer.from(String(value), 'utf8');
+}
+
+function toBody(fields = []) {
+    const chunks = [];
+
+    for (const field of fields) {
+        chunks.push(toBuffer(DELIMITER.FF));
+        chunks.push(toBuffer(field));
+    }
+
+    chunks.push(toBuffer(DELIMITER.FF));
+
+    return Buffer.concat(chunks);
+}
+
+export function makePacket(service, fields = []) {
+    const body = toBody(fields);
+    
+    const header = (
+        DELIMITER.ESC + DELIMITER.TAB
+        + String(service).padStart(4, '0'),
+        + String(body.length).padStart(6, '0')
+        + '00'
+    );
+
+    return Buffer.concat([
+        Buffer.from(header, 'binary'),
+        body
+    ]);
+}
+
+export function addInfo(data = {}) {
+    return Object.entries(data)
+        .filter(([, value]) => (
+            value !== undefined
+            && value !== null
+            && value !== ''
+        ));
+        .map(([key, value]) => {
+
+        })
+}
+
 
 export function addInfo(data = {}) {
     return Object.entries(data)
@@ -9,19 +63,6 @@ export function addInfo(data = {}) {
 
 export function joinLog(password = '') {
     return addInfo({ pwd: password });
-}
-
-function stringToUint(value = '') {
-    try {
-        value = unescape(encodeURIComponent(value));
-    } catch {
-        value = unescape(value);
-    }
-
-    return Uint8Array.from(
-        String(value),
-        ch => ch.charCodeAt(0)
-    );
 }
 
 function toBuffer(value = '') {
@@ -123,7 +164,7 @@ export function visible(data) {
         .replaceAll(config.DELIMITER.DC2, '<DC2>');
 }
 
-export function requestUserList() {
+export function makeUserList() {
     return makePacket(config.SVC.CHUSER, []);
 }
 

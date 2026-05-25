@@ -19,33 +19,35 @@ const password = '';
     const info = await http.getPrivateInfo({
         cookie: client.cookie
     });
-    log.info(info);
+    log.debug(info);
 
-    const live = await http.getLiveInfo(streamerId, password, {
+    const live = await http.getLiveInfo(streamerId, {
         cookie: client.cookie
     })
     client.channel = live;
 
+    log.warn(`[BPWD] ${client.channel.BPWD}`)
+
     client.on('open', () => {
-        log.info('open');
+        log.info('[OPEN]');
     });
 
     client.on('packet', data => {
         log.info('[PACKET]', {
-            service: data.service,
-            length: data.length,
-            flag: data.flag,
-            fields: data.fields
+            CODE: data.service,
+            SIZE: data.length,
+            FLAG: data.flag,
+            DATA: data.fields
         });
     });
 
     client.on('close', () => {
-        log.info('close');
+        log.info('[CLOSE]');
     });
 
 
     client.on('error', error => {
-        log.error('error', error);
+        log.error('[ERROR]', error);
     });
 
     await client.connect(streamerId, password);

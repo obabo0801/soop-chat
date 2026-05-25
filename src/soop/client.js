@@ -60,6 +60,16 @@ export class SoopClient {
         }
     }
 
+    disconnect() {
+        if (!this.socket) return false;
+
+        this.stopPing();
+        this.socket.close();
+        this.socket = null;
+
+        return true;
+    }
+
     async login(userId, password, secondPassword = '') {
         const result = await http.login(
             userId, password, {
@@ -107,18 +117,11 @@ export class SoopClient {
         return true;
     }
 
-    sendInfo(synAck = '') {
-        return this.send(
-            packet.info(synAck)
-        );
-    }
-
     async connect(streamerId = this.streamerId, password = '') {
         this.streamerId = streamerId;
 
         if (!this.channel) {
-            this.channel = await http.getLiveInfo(
-                streamerId, password, {
+            this.channel = await http.getLiveInfo(streamerId, {
                 cookie: this.cookie
             });
         }
@@ -177,36 +180,8 @@ export class SoopClient {
         return true;
     }
 
-    requestUserList() {
-        return this.send(
-            packet.requestUserList()
-        );
-    }
+    handlePacket() {
 
-    startPing() {
-        this.stopPing();
-
-        this.ping = setInterval(() => {
-            this.sendPing();
-        }, 60000);
-    }
-
-    stopPing() {
-        if (!this.ping) {
-            return false;
-        }
-        
-        clearInterval(this.ping);
-        this.ping = null;
-    }
-
-    sendPing() {
-        if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
-            return false;
-        }
-
-        this.send(packet.keepAlive());
-        return true;
     }
 
     send(data) {
@@ -248,13 +223,41 @@ export class SoopClient {
         );
     }
 
-    disconnect() {
-        if (!this.socket) return false;
+    sendInfo(synAck = '') {
+        return this.send(
+            packet.info(synAck)
+        );
+    }
 
-        this.stopPing();
-        this.socket.close();
-        this.socket = null;
+    sendUserList() {
+        return this.send(
+            packet.makeUserList()
+        );
+    }
 
+    sendPing() {
+        if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+            return false;
+        }
+
+        this.send(packet.keepAlive());
         return true;
+    }
+
+    startPing() {
+        this.stopPing();
+
+        this.ping = setInterval(() => {
+            this.sendPing();
+        }, 60000);
+    }
+
+    stopPing() {
+        if (!this.ping) {
+            return false;
+        }
+        
+        clearInterval(this.ping);
+        this.ping = null;
     }
 }

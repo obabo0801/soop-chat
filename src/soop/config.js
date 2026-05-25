@@ -17,35 +17,6 @@ export const USER_AGENT = (
     + 'Chrome/148.0.0.0 Safari/537.36'
 );
 
-export const BODY = {
-    type: 'live',
-    pwd: '',
-    player_type: 'html5',
-    stream_type: 'common',
-    quality: 'HD',
-    mode: 'landing',
-    from_api: '0',
-    is_revive: false
-};
-
-export const USER_FLAG = {
-    GUEST: 16,
-    QUICKVIEW: 1 << 19,
-    MOBILE_WEB: 1 << 23,
-};
-
-export function loginFlag(userFlag = 0) {
-    const flag = Number(String(userFlag).split('|')[0] || 0);
-
-    let result = USER_FLAG.GUEST;
-
-    if (flag & USER_FLAG.QUICKVIEW) {
-        result |= USER_FLAG.QUICKVIEW;
-    }
-
-    return result;
-}
-
 export const SVC = {
     KEEPALIVE: 0,
     LOGIN: 1,
@@ -63,6 +34,12 @@ export const DELIMITER = {
     DC1: '\x11',
     DC2: '\x12',
     ACK: '\x06'
+};
+
+export const USER_FLAG = {
+    GUEST: 16,
+    QUICKVIEW: 1 << 19,
+    MOBILE_WEB: 1 << 23,
 };
 
 export const SUBTITLE = {

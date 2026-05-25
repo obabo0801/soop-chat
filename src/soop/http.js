@@ -60,17 +60,23 @@ export async function getStation(
 }
 
 export async function getLiveInfo(
-        userId, password = '', options = {}
+        userId, options = {}
     ) {
     const url = (config.DOMAIN.live
         + `/afreeca/player_live_api.php?bjid=${userId}`
     );
 
     const body = new URLSearchParams({
-        ...config.BODY,
         bid: userId,
-        bno: '0',
-        pwd: password
+        bno: 0,
+        type: 'live',
+        pwd: '',
+        player_type: 'html5',
+        stream_type: 'common',
+        quality: 'HD',
+        mode: 'landing',
+        from_api: 0,
+        is_revive: false,
     });
 
     const json =  await requestJson(url, {

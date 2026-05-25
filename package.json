@@ -15,6 +15,7 @@
   },
   "imports": {
     "#soop/*": "./src/soop/*.js",
-    "#handler": "./src/handler.js"
+    "#handler": "./src/handler.js",
+    "#utils/*": "./src/utils/*.js"
   }
 }

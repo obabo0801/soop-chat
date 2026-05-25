@@ -6,6 +6,8 @@ import * as packet from '#soop/packet';
 
 import * as handler from '#handler';
 
+import * as log from '#utils/log';
+
 export class SoopClient {
     constructor(options = {}) {
         this.cookie = options.cookie;
@@ -180,13 +182,25 @@ export class SoopClient {
     }
 
     sendJoinChannel(password = '') {
+        const log = packet.joinLog({
+            password,
+            authInfo: this.channel?.AUTH_INFO || this.channel?.auth_info || '',
+        });
+
+        console.log('JOIN:', {
+            chatNo: this.channel?.CHATNO,
+            fanTicket: this.channel?.FTK,
+            password,
+            log,
+        });
+
         return this.send(
             packet.joinChannel(
                 this.channel?.CHATNO,
                 this.channel?.FTK || '',
                 0,
                 password,
-                ''
+                log
             )
         );
     }

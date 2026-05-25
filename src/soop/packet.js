@@ -9,9 +9,46 @@ export const SVC = {
     CHAT: 5,
 };
 
+const DC1 = '\x11';
+const DC2 = '\x12';
+
+export function addInfo(data = {}) {
+    return Object.entries(data)
+        .filter(([, value]) => value !== undefined && value !== null && value !== '')
+        .map(([key, value]) => `${key}${DC1}${value}${DC2}`)
+        .join('');
+}
+
+export function joinLog({ password = '', authInfo = '' } = {}) {
+    return addInfo({
+        pwd: password,
+        auth_info: authInfo,
+        pver: 2,
+        access_system: 'html5',
+        nation_lang: 'ko_KR',
+    });
+}
+
+function stringToUint(value = '') {
+    try {
+        value = unescape(encodeURIComponent(value));
+    } catch {
+        value = unescape(value);
+    }
+
+    return Uint8Array.from(
+        String(value),
+        ch => ch.charCodeAt(0)
+    );
+}
+
 function toBuffer(value = '') {
     if (Buffer.isBuffer(value)) {
         return value;
+    }
+
+    if (value instanceof Uint8Array) {
+        return Buffer.from(value);
     }
 
     return Buffer.from(String(value), 'utf8');
@@ -50,7 +87,7 @@ export function makePacket(service, fields = []) {
 export function login(ticket = '', nick = '', flag = 0) {
     return makePacket(SVC.LOGIN, [
         ticket,
-        nick,
+        stringToUint(nick),
         flag
     ]);
 }
@@ -60,7 +97,7 @@ export function joinChannel(chatNo, fanTicket = '', type = 0, password = '', log
         chatNo,
         fanTicket,
         type,
-        password,
+        stringToUint(password),
         log
     ]);
 }

@@ -2,7 +2,7 @@ import { SoopClient } from '#soop/client';
 import * as http from '#soop/http';
 
 // 스트리머 아이디
-const streamerId = '';
+const streamerId = 'maribyeol';
 
 // 필요하면 브라우저 쿠키 넣기
 const cookie = ''
@@ -15,9 +15,6 @@ const password = '';
         cookie
     });
 
-//    await client.login('', '@', '');
-    await client.login('', '@', '@');
-
     const r = await http.getPrivateInfo({
         cookie: client.cookie
     });
@@ -25,7 +22,7 @@ const password = '';
     const live = await http.getLiveInfo(streamerId, password, {
         cookie: client.cookie
     })
-    client.channel = live.channel;
+    client.channel = live;
 
     await client.connect(streamerId);
 })();

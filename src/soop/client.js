@@ -2,6 +2,9 @@ import { WebSocket } from 'ws';
 
 import * as config from '#soop/config';
 import * as http from '#soop/http';
+import * as packet from '#soop/packet';
+
+import * as handler from '#handler';
 
 export class SoopClient {
     constructor(options = {}) {
@@ -26,7 +29,7 @@ export class SoopClient {
     }
 
     off(event, handler) {
-        const handlers = this.events.get(event)
+        const handlers = this.events.get(event) || []
         this.events.set(
             event,
             handlers.filter(fn => fn !== handler)
@@ -44,7 +47,7 @@ export class SoopClient {
     }
 
     emit(event, payload) {
-        const handlers = this.events.get(event)
+        const handlers = this.events.get(event) || []
         for (const handler of handlers) {
             try {
                 handler(payload);
@@ -120,7 +123,7 @@ export class SoopClient {
         const headers = {
             'User-Agent': this.userAgent,
             ...(this.cookie ? {
-                Cookie: this.cookie
+                Cookie: http.cookieString(this.cookie)
             } : {})
         };
 
@@ -130,6 +133,12 @@ export class SoopClient {
 
         this.socket.on('open', () => {
             console.log('채팅 서버 연결됨');
+
+            this.sendLogin();
+
+            setTimeout(() => {
+                this.sendJoinChannel();
+            }, 300);
         });
 
         this.socket.on('message', data => {
@@ -143,6 +152,45 @@ export class SoopClient {
         this.socket.on('error', error => {
             console.log('채팅 서버 오류:', error.message);
         });
+    }
+
+    send(data) {
+        if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+            return false;
+        }
+
+        this.socket.send(data);
+        return true;
+    }
+
+    sendLogin() {
+        const cookie = (
+            typeof this.cookie === 'string'
+            ? http.cookieJson(this.cookie)
+            : this.cookie
+        );
+
+        const ticket = (
+            this.channel?.TK
+            || cookie?.AuthTicket
+            || ''
+        );
+
+        return this.send(
+            packet.login(ticket, '', 0)
+        );
+    }
+
+    sendJoinChannel() {
+        return this.send(
+            packet.joinChannel(
+                this.channel?.CHATNO,
+                this.channel?.FTK || '',
+                0,
+                '',
+                ''
+            )
+        );
     }
 
     disconnect() {

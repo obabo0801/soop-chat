@@ -1,5 +1,22 @@
 import * as config from '#soop/config';
 
+export async function getMyInfo(
+        options = {}
+    ) {
+    const url = new URL(config.DOMAIN.event
+        + `/api/get_private_info.php`
+    );
+
+    url.searchParams.set('_', Date.now());
+
+    const data =  await rejson(url, {
+        ...options,
+        method: 'GET'
+    });
+
+    return data?.CHANNEL;
+}
+
 export async function getStation(
         userId, options = {}
     ) {
@@ -7,14 +24,9 @@ export async function getStation(
         + `/api/${userId}/station`
     );
 
-    const headers = {
-        'User-Agent': config.USER_AGENT
-    };
-
     const data =  await rejson(url, {
         ...options,
-        method: 'GET',
-        headers
+        method: 'GET'
     });
 
     return data;
@@ -298,6 +310,7 @@ export async function request(
             ...(cookie ? {
                 Cookie: cookieString(cookie)
             } : {}),
+            'User-Agent': config.USER_AGENT,
             ...headers,
         },
         body

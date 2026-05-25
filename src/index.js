@@ -16,17 +16,12 @@ const password = '';
     });
 
     await client.login('', '@', '@');
-    
-    let channl = await http.getBroad(streamerId, '', {
-        cookie: client.cookie
-    });
-    
-    channl = await http.getBroad(streamerId, '', {
-        cookie: client.cookie
-    });
-    client.channel = channl;
 
-    console.log(channl?.UNICK);
+    const r = await http.getMyInfo({
+        cookie: client.cookie
+    });
+
+    console.log(r);
 
 //    await client.connect(streamerId);
 })();

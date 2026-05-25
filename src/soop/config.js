@@ -4,6 +4,7 @@ export const DOMAIN = {
     member: 'https://member.sooplive.com',
     chapi: 'https://chapi.sooplive.com',
     channel: 'https://api-channel.sooplive.com',
+    event: 'https://afevent2.sooplive.com',
 };
 
 export const CONTENT_TYPE = (

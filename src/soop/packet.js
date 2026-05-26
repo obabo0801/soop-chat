@@ -47,10 +47,10 @@ export function makePacket(service, fields = []) {
         + '00'
     );
 
-    console.log('[SEND]', {
-        header: visible(header),
-        body: visible(body)
-    });
+//    console.log('[SEND]', {
+//        header: visible(header),
+//        body: visible(body)
+//    });
 
     return Buffer.concat([
         Buffer.from(header, 'binary'),
@@ -112,6 +112,32 @@ export function makePlayLog(
         `&${ack}mode${ack}=`
             + `${ack}landing`
     ].join('');
+}
+
+export function chat(message = '') {
+    const fields = [
+        message,
+        0
+    ];
+
+    return makePacket(SVC.CHAT, fields);
+}
+
+export function managerChat(message = '') {
+    const fields = [
+        message
+    ];
+
+    return makePacket(SVC.MANAGER_CHAT, fields);
+}
+
+export function slowMode(chatno = 0, count = 0) {
+    const fields = [
+        chatno,
+        count
+    ];
+
+    return makePacket(SVC.SLOW_MODE, fields);
 }
 
 export function login(ticket = '') {

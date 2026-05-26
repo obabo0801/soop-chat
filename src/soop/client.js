@@ -63,12 +63,12 @@ export class SoopClient {
         return this;
     }
 
-    emit(event, payload) {
+    emit(event, ...args) {
         const handlers = this.events.get(event) || []
 
         for (const handler of handlers) {
             try {
-                handler(payload);
+                handler(...args);
             } catch (error) {
                 log.error(error);
             }
@@ -215,6 +215,39 @@ export class SoopClient {
 
         this.socket.send(data);
         return true;
+    }
+
+    sendChat(message = '') {
+        if (!message && !this.isOpen(this.socket)) {
+            return false;
+        }
+
+        return this.send(
+            packet.chat(message)
+        );
+    }
+
+    sendManagerChat(message = '') {
+        if (!message && !this.isOpen(this.socket)) {
+            return false;
+        }
+
+        return this.send(
+            packet.managerChat(message)
+        );
+    }
+
+    sendslowMode(count = 0) {
+        if (!count && !this.isOpen(this.socket)) {
+            return false;
+        }
+
+        return this.send(
+            packet.slowMode(
+                this.channel.CHATNO,
+                count
+            )
+        );
     }
 
     sendLogin() {

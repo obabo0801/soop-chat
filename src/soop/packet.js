@@ -38,7 +38,7 @@ export function bodySize(body) {
 
 export function makePacket(service, fields = []) {
     const body = toBody(fields);
-    
+
     const header = (
         DELIMITER.ESC
         + DELIMITER.TAB
@@ -47,13 +47,18 @@ export function makePacket(service, fields = []) {
         + '00'
     );
 
+    console.log('[SEND]', {
+        header: visible(header),
+        body: visible(body)
+    });
+
     return Buffer.concat([
         Buffer.from(header, 'binary'),
         body
     ]);
 }
 
-export function makeInfoMap(data = {}) {
+export function makePayload(data = {}) {
     const dc1 = DELIMITER.DC1;
     const dc2 = DELIMITER.DC2;
 
@@ -71,7 +76,9 @@ export function makeInfoMap(data = {}) {
     );
 }
 
-export function makePlayLog(channel = {}, uuid = '') {
+export function makePlayLog(
+        channel = {}, uuid = ''
+    ) {
     const ack = DELIMITER.ACK;
 
     return [
@@ -117,8 +124,10 @@ export function login(ticket = '') {
     return makePacket(SVC.LOGIN, fields);
 }
 
-export function joinChannel(channel, password = '', uuid = '') {
-    const mode = makeInfoMap({
+export function joinChannel(
+        channel, password = '', uuid = ''
+    ) {
+    const mode = makePayload({
         log: makePlayLog(channel, uuid),
         pwd: password,
         auth_info: 'NULL',
@@ -138,12 +147,13 @@ export function joinChannel(channel, password = '', uuid = '') {
     return makePacket(SVC.JOIN_CHANNEL, fields);
 }
 
-export function info(synAck = '') {
+export function setUserFlag(synAck = '') {
     const fields = [
-        synAck
+        synAck,
+        0
     ];
 
-    return makePacket(SVC.INFO, fields);
+    return makePacket(SVC.SET_USER_FLAG, fields);
 }
 
 export function keepAlive() {

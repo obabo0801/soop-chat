@@ -1,9 +1,7 @@
 import {
     DOMAIN,
     CONTENT_TYPE,
-    USER_AGENT,
-    SVC,
-    DELIMITER,
+    USER_AGENT
 } from '#soop/config';
 
 export async function requestRaw(

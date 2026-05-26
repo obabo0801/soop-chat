@@ -1,9 +1,10 @@
 import { WebSocket } from 'ws';
 import crypto from 'crypto';
+import * as handler from '#handler';
 
 import {
     SVC,
-    USER_FLAG1
+    DELIMITER
 } from '#soop/config';
 
 import * as http from '#soop/http';
@@ -13,17 +14,22 @@ import * as log from '#utils/log';
 export class SoopClient {
     constructor(options = {}) {
         this.cookie = options.cookie;
+        this.password = options.password;
 
         this.uuid = crypto
             .randomBytes(16)
             .toString('hex');
 
         this.socket = null;
+        this.channel = null;
+
         this.streamerId = null;
         this.userId = null;
+        this.usefFlag = null;
+
         this.userList = new Map();
-        this.channel = null;
         this.events = new Map();
+
         this.ping = null;
     }
 
@@ -68,18 +74,24 @@ export class SoopClient {
             }
         }
     }
-
-    disconnect() {
-        if (!this.socket) return false;
-
-        this.stopPing();
-        this.socket.close();
-        this.socket = null;
-
-        return true;
+    
+    isOpen(socket) {
+        return (
+            socket
+            && socket.readyState === WebSocket.OPEN
+        );
+    }
+    
+    isConnecting(socket) {
+        return (
+            socket
+            && socket.readyState === WebSocket.CONNECTING
+        );
     }
 
-    async login(userId, password, secondPassword = '') {
+    async login(
+            userId, password, secondPassword = ''
+        ) {
         const result = await http.login(
             userId, password, {
             cookie: this.cookie
@@ -100,7 +112,9 @@ export class SoopClient {
         return result;
     }
 
-    async secondLogin(userId, secondPassword) {
+    async secondLogin(
+            userId, secondPassword
+        ) {
         const result = await http.secondLogin(
             userId, secondPassword, {
             cookie: this.cookie
@@ -123,14 +137,26 @@ export class SoopClient {
         this.cookie = '';
         this.channel = null;
 
+        this.uuid = null;
+
         return true;
     }
 
-    async connect(streamerId = this.streamerId, password = '') {
+    async connect(
+            streamerId = '', password = ''
+        ) {
+        if (!streamerId) {
+            streamerId = this.streamerId;
+        }
+        if (!password) {
+            password = this.password;
+        }
         this.streamerId = streamerId;
+        this.password = password;
 
         if (!this.channel) {
-            this.channel = await http.getLiveInfo(streamerId, {
+            this.channel = await http.getLiveInfo(
+                streamerId, {
                 cookie: this.cookie
             });
         }
@@ -149,6 +175,12 @@ export class SoopClient {
             headers
         });
 
+        await this.openSocket();
+
+        return true;
+    }
+
+    async openSocket() {
         this.socket.on('open', () => {
             this.sendLogin();
             this.startPing();
@@ -156,13 +188,10 @@ export class SoopClient {
         });
 
         this.socket.on('message', data => {
-            const parsed = packet.parse(data);
-
-            if (parsed.service === SVC.LOGIN) {
-                this.sendJoinChannel(password);
-            }
-
-            this.emit('packet', parsed);
+            handler.packet(
+                this, 
+                packet.parse(data)
+            );
         });
 
         this.socket.on('close', (code, reason) => {
@@ -177,16 +206,10 @@ export class SoopClient {
         this.socket.on('error', error => {
             this.emit('error', error);
         });
-
-        return true;
-    }
-
-    handlePacket() {
-
     }
 
     send(data) {
-        if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+        if (!this.isOpen(this.socket)) {
             return false;
         }
 
@@ -195,20 +218,8 @@ export class SoopClient {
     }
 
     sendLogin() {
-        const cookie = (
-            typeof this.cookie === 'string'
-            ? http.cookieJson(this.cookie)
-            : this.cookie
-        );
-
-        const ticket = (
-            this.channel?.TK
-            || cookie?.AuthTicket
-            || ''
-        );
-
         return this.send(
-            packet.login(ticket)
+            packet.login(this.channel?.TK || '')
         );
     }
 
@@ -222,9 +233,9 @@ export class SoopClient {
         );
     }
 
-    sendInfo(synAck = '') {
+    sendUserFlag(flag = '') {
         return this.send(
-            packet.info(synAck)
+            packet.setUserFlag(flag)
         );
     }
 
@@ -235,7 +246,7 @@ export class SoopClient {
     }
 
     sendPing() {
-        if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+        if (!this.isOpen(this.socket)) {
             return false;
         }
 
@@ -258,5 +269,17 @@ export class SoopClient {
         
         clearInterval(this.ping);
         this.ping = null;
+    }
+
+    disconnect() {
+        if (!this.socket) {
+            return false;
+        }
+
+        this.stopPing();
+        this.socket.close();
+        this.socket = null;
+
+        return true;
     }
 }

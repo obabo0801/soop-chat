@@ -13,8 +13,9 @@ const password = '';
 
 (async () => {
     const client = new SoopClient({
-        cookie
+        cookie, password
     });
+
 
     const info = await http.getPrivateInfo({
         cookie: client.cookie
@@ -43,6 +44,14 @@ const password = '';
         log.info('[OPEN]');
     });
 
+    client.on('chuser', (type, user) => {
+        if (type > 0) {
+            log.info('[입장]', `${user.name}(${user.id})`);
+        } else {
+            log.info('[퇴장]', `${user.name}(${user.id})`);
+        }
+    });
+
     client.on('packet', data => {
         log.info('[PACKET]', {
             CODE: data.service,
@@ -61,5 +70,5 @@ const password = '';
         log.error('[ERROR]', error);
     });
 
-    await client.connect(streamerId, password);
+    await client.connect();
 })();

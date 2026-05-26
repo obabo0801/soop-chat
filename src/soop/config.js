@@ -115,13 +115,6 @@ export const SVC = {
     NIGHTBOT_TIMEOUT: 141,
 };
 
-export const SVC_CODE = Object.fromEntries(
-    Object.entries(SVC).map(([key, value]) => [
-        key,
-        String(value).padStart(4, '0')
-    ])
-);
-
 export const USER_FLAG1 = {
     ADMIN: 1,
     HIDDEN: 2,

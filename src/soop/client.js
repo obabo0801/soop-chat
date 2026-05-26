@@ -1,7 +1,8 @@
 import { WebSocket } from 'ws';
 
 import {
-    SVC
+    SVC,
+    USER_FLAG1
 } from '#soop/config';
 
 import * as http from '#soop/http';
@@ -128,6 +129,12 @@ export class SoopClient {
                 cookie: this.cookie
             });
         }
+
+        const r = packet.makePlayLog(this.channel, {
+            _au: this.cookie._au
+        });
+
+        console.log('결과', r);
         
         const url = http.getChatUrl(this.channel);
 
@@ -154,14 +161,6 @@ export class SoopClient {
 
             if (parsed.service === SVC.LOGIN) {
                 this.sendJoinChannel(password);
-            }
-
-            if (parsed.service === SVC.JOIN_CHANNEL) {
-                const synAck = parsed.fields[5];
-
-                if (this.cookie) {
-                    this.sendInfo(synAck);
-                }
             }
 
             this.emit('packet', parsed);
@@ -210,12 +209,19 @@ export class SoopClient {
         );
 
         return this.send(
-            packet.login(ticket, '', 16)
+            packet.login(ticket)
         );
     }
 
     sendJoinChannel(password = '') {
-        return this.send(packet.joinChannel(this.channel?.CHATNO, this.channel?.FTK, 0, password));
+        return this.send(
+            packet.joinChannel(
+                this.channel?.CHATNO,
+                this.channel?.FTK || '',
+                0,
+                password
+            )
+        );
     }
 
     sendInfo(synAck = '') {

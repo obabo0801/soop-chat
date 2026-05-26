@@ -1,6 +1,5 @@
 import {
     SVC,
-    SVC_CODE,
     DELIMITER
 } from '#soop/config';
 
@@ -33,7 +32,7 @@ export function svcCode(value) {
     return String(value).padStart(4, '0');
 }
 
-export function packetSize(body) {
+export function bodySize(body) {
     return String(body.length).padStart(6, '0')
 }
 
@@ -44,11 +43,11 @@ export function makePacket(service, fields = []) {
         DELIMITER.ESC
         + DELIMITER.TAB
         + svcCode(service)
-        + packetSize(body)
+        + bodySize(body)
         + '00'
     );
 
-    console.log(header, fields, '@');
+    console.log({ header, body: body.toString('utf8') }, '@');
 
     return Buffer.concat([
         Buffer.from(header, 'binary'),
@@ -56,7 +55,33 @@ export function makePacket(service, fields = []) {
     ]);
 }
 
-export function addInfo(data = {}) {
+export function makePlayLog(channel = {}, options = {}) {
+    const ack = DELIMITER.ACK;
+    const bps = channel.BPS || 16000;
+
+    console.log(options, '#');
+
+    return [
+        ack,
+        `&${ack}set_bps${ack}=${ack}${channel.BPS}`,
+        `&${ack}view_bps${ack}=${ack}${channel.BPS}`,
+        `&${ack}quality${ack}=${ack}ori`,
+        `&${ack}uuid${ack}=${ack}${options._au}`,
+        `&${ack}geo_cc${ack}=${ack}${channel.geo_cc}`,
+        `&${ack}geo_rc${ack}=${ack}${channel.geo_rc}`,
+        `&${ack}acpt_lang${ack}=${ack}${channel.STRM_LANG_TYPE}`,
+        `&${ack}svc_lang${ack}=${ack}${channel.STRM_LANG_TYPE}`,
+        `&${ack}is_iframeapi${ack}=${ack}false`,
+        channel.join_cc
+            ? `&${ack}join_cc${ack}=${ack}${channel.join_cc}`
+            : '',
+        `&${ack}subscribe${ack}=${ack}${channel.SUB_PAY_CNT}`,
+        `&${ack}lowlatency${ack}=${ack}1`,
+        `&${ack}mode${ack}=${ack}landing`,
+    ].join('');
+}
+
+export function makeInfoMap(data = {}) {
     return (Object.entries(data)
         .filter(([, value]) => (
             value !== undefined
@@ -71,26 +96,48 @@ export function addInfo(data = {}) {
     );
 }
 
-export function login(ticket = '', nick = '', flag = 16) {
-    const playload = [
+export function login(ticket = '') {
+    const fields = [
         ticket,
-        nick,
-        flag
+        '',
+        16
     ];
 
-    return makePacket(SVC.LOGIN, playload);
+    return makePacket(SVC.LOGIN, fields);
+}
+
+export function joinChannel2(channel, password = '', options = {}) {
+    const playLog = makePlayLog(channel, options);
+
+    const log = makeInfoMap({
+        pwd: password,
+        authInfo: 'NULL',
+        pver: 0,
+        access_system: 'html5',
+        nation_lang: channel.STRM_LANG_TYPE
+    });
+
+    const fields = [
+        channel.CHATNO,
+        channel.FTK,
+        0,
+        password,
+        log
+    ];
+
+    return makePacket(SVC.JOIN_CHANNEL, fields);
 }
 
 export function joinChannel(chatno = '', ftk = '', flag = 0, password = '') {
-    const log = addInfo({
+    const log = makeInfoMap({
         pwd: password,
-        authInfo = 'NULL',
-        pver = 0,
-        accessSystem = 'html5',
-        nationLang = 'ko_KR'
+        authInfo: 'NULL',
+        pver: 0,
+        access_system: 'html5',
+        nation_lang: 'ko_KR'
     });
 
-    const playload = [
+    const fields = [
         chatno,
         ftk,
         flag,
@@ -98,11 +145,15 @@ export function joinChannel(chatno = '', ftk = '', flag = 0, password = '') {
         log
     ];
 
-    return makePacket(SVC.JOIN_CHANNEL, playload);
+    return makePacket(SVC.JOIN_CHANNEL, fields);
 }
 
 export function info(synAck = '') {
-    return makePacket(SVC.INFO, [synAck]);
+    const fields = [
+        synAck
+    ];
+
+    return makePacket(SVC.INFO, fields);
 }
 
 export function keepAlive() {

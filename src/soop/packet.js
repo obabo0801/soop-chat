@@ -47,41 +47,16 @@ export function makePacket(service, fields = []) {
         + '00'
     );
 
-    console.log({ header, body: body.toString('utf8') }, '@');
-
     return Buffer.concat([
         Buffer.from(header, 'binary'),
         body
     ]);
 }
 
-export function makePlayLog(channel = {}, options = {}) {
-    const ack = DELIMITER.ACK;
-    const bps = channel.BPS || 16000;
-
-    console.log(options, '#');
-
-    return [
-        ack,
-        `&${ack}set_bps${ack}=${ack}${channel.BPS}`,
-        `&${ack}view_bps${ack}=${ack}${channel.BPS}`,
-        `&${ack}quality${ack}=${ack}ori`,
-        `&${ack}uuid${ack}=${ack}${options._au}`,
-        `&${ack}geo_cc${ack}=${ack}${channel.geo_cc}`,
-        `&${ack}geo_rc${ack}=${ack}${channel.geo_rc}`,
-        `&${ack}acpt_lang${ack}=${ack}${channel.STRM_LANG_TYPE}`,
-        `&${ack}svc_lang${ack}=${ack}${channel.STRM_LANG_TYPE}`,
-        `&${ack}is_iframeapi${ack}=${ack}false`,
-        channel.join_cc
-            ? `&${ack}join_cc${ack}=${ack}${channel.join_cc}`
-            : '',
-        `&${ack}subscribe${ack}=${ack}${channel.SUB_PAY_CNT}`,
-        `&${ack}lowlatency${ack}=${ack}1`,
-        `&${ack}mode${ack}=${ack}landing`,
-    ].join('');
-}
-
 export function makeInfoMap(data = {}) {
+    const dc1 = DELIMITER.DC1;
+    const dc2 = DELIMITER.DC2;
+
     return (Object.entries(data)
         .filter(([, value]) => (
             value !== undefined
@@ -89,11 +64,47 @@ export function makeInfoMap(data = {}) {
             && value !== ''
         ))
         .map(([key, value]) => (
-            `${key}${DELIMITER.DC1}`
-            + `${value}${DELIMITER.DC2}`
+            `${key}${dc1}`
+            + `${value}${dc2}`
         ))
         .join('')
     );
+}
+
+export function makePlayLog(channel = {}, uuid = '') {
+    const ack = DELIMITER.ACK;
+
+    return [
+        ack,
+        `&${ack}set_bps${ack}=`
+            + `${ack}${channel.BPS}`,
+        `&${ack}view_bps${ack}=`
+            + `${ack}${channel.BPS}`,
+        `&${ack}quality${ack}=`
+            + `${ack}ori`,
+        `&${ack}uuid${ack}=`
+            + `${ack}${uuid}`,
+        `&${ack}geo_cc${ack}=`
+            + `${ack}${channel.geo_cc}`,
+        `&${ack}geo_rc${ack}=`
+            + `${ack}${channel.geo_rc}`,
+        `&${ack}acpt_lang${ack}=`
+            + `${ack}${channel.STRM_LANG_TYPE}`,
+        `&${ack}svc_lang${ack}=`
+            + `${ack}${channel.STRM_LANG_TYPE}`,
+        `&${ack}is_iframeapi${ack}=`
+            + `${ack}false`,
+        channel.join_cc
+            ? `&${ack}join_cc${ack}=`
+                + `${ack}${channel.join_cc}`
+            : '',
+        `&${ack}subscribe${ack}=`
+            + `${ack}${channel.SUB_PAY_CNT}`,
+        `&${ack}lowlatency${ack}=`
+            + `${ack}1`,
+        `&${ack}mode${ack}=`
+            + `${ack}landing`
+    ].join('');
 }
 
 export function login(ticket = '') {
@@ -106,12 +117,11 @@ export function login(ticket = '') {
     return makePacket(SVC.LOGIN, fields);
 }
 
-export function joinChannel2(channel, password = '', options = {}) {
-    const playLog = makePlayLog(channel, options);
-
-    const log = makeInfoMap({
+export function joinChannel(channel, password = '', uuid = '') {
+    const mode = makeInfoMap({
+        log: makePlayLog(channel, uuid),
         pwd: password,
-        authInfo: 'NULL',
+        auth_info: 'NULL',
         pver: 0,
         access_system: 'html5',
         nation_lang: channel.STRM_LANG_TYPE
@@ -121,28 +131,8 @@ export function joinChannel2(channel, password = '', options = {}) {
         channel.CHATNO,
         channel.FTK,
         0,
-        password,
-        log
-    ];
-
-    return makePacket(SVC.JOIN_CHANNEL, fields);
-}
-
-export function joinChannel(chatno = '', ftk = '', flag = 0, password = '') {
-    const log = makeInfoMap({
-        pwd: password,
-        authInfo: 'NULL',
-        pver: 0,
-        access_system: 'html5',
-        nation_lang: 'ko_KR'
-    });
-
-    const fields = [
-        chatno,
-        ftk,
-        flag,
-        password,
-        log
+        '',
+        mode
     ];
 
     return makePacket(SVC.JOIN_CHANNEL, fields);
@@ -207,5 +197,6 @@ export function visible(data) {
         .replaceAll(DELIMITER.FF, '<FF>')
         .replaceAll(DELIMITER.DC1, '<DC1>')
         .replaceAll(DELIMITER.DC2, '<DC2>')
+        .replaceAll(DELIMITER.ACK, '<ACK>')
     );
 }

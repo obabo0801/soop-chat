@@ -1,4 +1,5 @@
 import { WebSocket } from 'ws';
+import crypto from 'crypto';
 
 import {
     SVC,
@@ -12,6 +13,10 @@ import * as log from '#utils/log';
 export class SoopClient {
     constructor(options = {}) {
         this.cookie = options.cookie;
+
+        this.uuid = crypto
+            .randomBytes(16)
+            .toString('hex');
 
         this.socket = null;
         this.streamerId = null;
@@ -129,12 +134,6 @@ export class SoopClient {
                 cookie: this.cookie
             });
         }
-
-        const r = packet.makePlayLog(this.channel, {
-            _au: this.cookie._au
-        });
-
-        console.log('결과', r);
         
         const url = http.getChatUrl(this.channel);
 
@@ -216,10 +215,9 @@ export class SoopClient {
     sendJoinChannel(password = '') {
         return this.send(
             packet.joinChannel(
-                this.channel?.CHATNO,
-                this.channel?.FTK || '',
-                0,
-                password
+                this.channel,
+                password,
+                this.cookie?._au || this.uuid
             )
         );
     }

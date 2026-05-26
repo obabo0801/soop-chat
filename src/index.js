@@ -31,7 +31,7 @@ const password = '';
     })
     client.channel = live;
 
-    if (live.TITLE) {
+    if (live?.TITLE) {
         log.info(`[TITLE] ${live.TITLE}`);
         log.info(`[HOST] ${live.BJNICK}(${live.BJID})`);
         if (live.BPWD) {

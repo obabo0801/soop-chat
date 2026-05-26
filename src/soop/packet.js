@@ -34,7 +34,7 @@ export function makePacket(service, fields = []) {
     const header = (
         DELIMITER.ESC
         + DELIMITER.TAB
-        + String(service).padStart(4, '0'),
+        + String(service).padStart(4, '0')
         + String(body.length).padStart(6, '0')
         + '00'
     );
@@ -54,6 +54,7 @@ export function addInfo(data = {}) {
         ))
         .map(([key, value]) => {
             `${key}${DELIMITER.DC1}`
+            + `${value}${DELIMITER.DC2}`
         })
         .join('')
     );
@@ -82,19 +83,20 @@ export function joinChannel(chatno = '', ftk = '', flag = 16, password = '') {
         password,
         joinLog(password)
     ];
+
     return makePacket(SVC.JOIN_CHANNEL, playload);
 }
 
 export function info(synAck = '') {
-    return makePacket(config.SVC.INFO, [synAck]);
+    return makePacket(SVC.INFO, [synAck]);
 }
 
 export function keepAlive() {
-    return makePacket(SVC.KEEP_ALIVE);
+    return makePacket(SVC.KEEPALIVE);
 }
 
 export function userList() {
-    return makePacket(SVC.USER_LIST);
+    return makePacket(SVC.CHUSER);
 }
 
 export function parse(data) {
@@ -103,8 +105,8 @@ export function parse(data) {
         : String(data);
 
     const head = (
-        config.DELIMITER.ESC
-        + config.DELIMITER.TAB
+        DELIMITER.ESC
+        + DELIMITER.TAB
     );
 
     const offset = raw.startsWith(head)
@@ -127,7 +129,7 @@ export function parse(data) {
     const body = raw.slice(offset + 12);
 
     const fields = body
-        .split(config.DELIMITER.FF)
+        .split(DELIMITER.FF)
         .filter(Boolean);
 
     return { service, length, flag, fields, raw };
@@ -135,10 +137,10 @@ export function parse(data) {
 
 export function visible(data) {
     return (String(data)
-        .replaceAll(config.DELIMITER.ESC, '<ESC>')
-        .replaceAll(config.DELIMITER.TAB, '<TAB>')
-        .replaceAll(config.DELIMITER.FF, '<FF>')
-        .replaceAll(config.DELIMITER.DC1, '<DC1>')
-        .replaceAll(config.DELIMITER.DC2, '<DC2>')
+        .replaceAll(DELIMITER.ESC, '<ESC>')
+        .replaceAll(DELIMITER.TAB, '<TAB>')
+        .replaceAll(DELIMITER.FF, '<FF>')
+        .replaceAll(DELIMITER.DC1, '<DC1>')
+        .replaceAll(DELIMITER.DC2, '<DC2>')
     );
 }

@@ -157,7 +157,7 @@ export class SoopClient {
             }
 
             if (parsed.service === SVC.JOIN_CHANNEL) {
-                const synAck = parsed.fields[6];
+                const synAck = parsed.fields[5];
 
                 if (this.cookie) {
                     this.sendInfo(synAck);

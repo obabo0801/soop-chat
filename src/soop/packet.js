@@ -1,5 +1,6 @@
 import {
     SVC,
+    SVC_CODE,
     DELIMITER
 } from '#soop/config';
 
@@ -28,16 +29,26 @@ function toBody(fields = []) {
     return Buffer.concat(chunks);
 }
 
+export function svcCode(value) {
+    return String(value).padStart(4, '0');
+}
+
+export function svcBody(value) {
+    return String(value.length).padStart(6, '0')
+}
+
 export function makePacket(service, fields = []) {
     const body = toBody(fields);
     
     const header = (
         DELIMITER.ESC
         + DELIMITER.TAB
-        + String(service).padStart(4, '0')
-        + String(body.length).padStart(6, '0')
+        + svcCode(service)
+        + svcBody(body)
         + '00'
     );
+
+    console.log(header, fields, '@');
 
     return Buffer.concat([
         Buffer.from(header, 'binary'),

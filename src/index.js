@@ -19,14 +19,25 @@ const password = '';
     const info = await http.getPrivateInfo({
         cookie: client.cookie
     });
-    log.debug(info);
+
+    if (info.IS_LOGIN === 1) {
+        log.warn(`[INFO] ${info.LOGIN_NICK}(${info.LOGIN_ID}) 로그인`);
+    } else {
+        log.warn('[INFO] 비로그인');
+    }
 
     const live = await http.getLiveInfo(streamerId, {
         cookie: client.cookie
     })
     client.channel = live;
 
-    log.warn(`[BPWD] ${client.channel.BPWD}`)
+    if (live.TITLE) {
+        log.info(`[TITLE] ${live.TITLE}`);
+        log.info(`[HOST] ${live.BJNICK}(${live.BJID})`);
+        if (live.BPWD) {
+            log.warn(`[BPWD] ${live.BPWD}`);
+        }
+    }
 
     client.on('open', () => {
         log.info('[OPEN]');

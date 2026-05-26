@@ -1,4 +1,10 @@
-import * as config from '#soop/config';
+import {
+    DOMAIN,
+    CONTENT_TYPE,
+    USER_AGENT,
+    SVC,
+    DELIMITER,
+} from '#soop/config';
 
 export async function requestRaw(
         url, options = {}
@@ -11,11 +17,11 @@ export async function requestRaw(
     } = options;
 
     headers = {
-        'Content-Type': config.CONTENT_TYPE,
+        'Content-Type': CONTENT_TYPE,
         ...(cookie ? {
             Cookie: cookieString(cookie)
         } : {}),
-        'User-Agent': config.USER_AGENT,
+        'User-Agent': USER_AGENT,
         ...headers,
     }
 
@@ -47,7 +53,7 @@ export async function requestJson(
 export async function getStation(
         userId, options = {}
     ) {
-    const url = (config.DOMAIN.chapi
+    const url = (DOMAIN.chapi
         + `/api/${userId}/station`
     );
 
@@ -62,7 +68,7 @@ export async function getStation(
 export async function getLiveInfo(
         userId, options = {}
     ) {
-    const url = (config.DOMAIN.live
+    const url = (DOMAIN.live
         + `/afreeca/player_live_api.php?bjid=${userId}`
     );
 
@@ -91,7 +97,7 @@ export async function getLiveInfo(
 export async function getPrivateInfo(
         options = {}
     ) {
-    const url = new URL(config.DOMAIN.event
+    const url = new URL(DOMAIN.event
         + `/api/get_private_info.php`
     );
 
@@ -108,7 +114,7 @@ export async function getPrivateInfo(
 export async function getSessionAllow(
         options = {}
     ) {
-    const url = (config.DOMAIN.member
+    const url = (DOMAIN.member
         + `/app/session_allow.php`
     );
 
@@ -137,7 +143,7 @@ export function getChatUrl(channel = {}) {
 export async function getChatRule(
         userId, options = {}
     ) {
-    const url = (config.DOMAIN.live
+    const url = (DOMAIN.live
         + `/api/broad_chat_rule.php`
     );
 
@@ -158,8 +164,9 @@ export async function getChatRule(
 export async function getMyPlus(
         options = {}
     ) {
-    const url = (config.DOMAIN.live
-        + '/api/myplus/preferbjOnLnbController.php'
+    const url = (DOMAIN.live
+        + '/api/myplus/preferbjOnLnbController'
+        + '.php?isForce=n&szType=all'
     );
 
     const json = await requestJson(url, {
@@ -173,7 +180,7 @@ export async function getMyPlus(
 export async function getSection(
         userId, chip = '', options = {}
     ) {
-    const url = (config.DOMAIN.channel
+    const url = (DOMAIN.channel
         + `/v1.1/channel/${userId}/${chip}`
     );
 
@@ -188,7 +195,7 @@ export async function getSection(
 export async function login(
         userId, password = '', options = {}
     ) {
-    const url = (config.DOMAIN.login
+    const url = (DOMAIN.login
         + `/app/LoginAction.php`
     );
 
@@ -204,10 +211,10 @@ export async function login(
     });
 
     const headers = {
-        'User-Agent': config.USER_AGENT,
-        'Origin': config.DOMAIN.login,
+        'User-Agent': USER_AGENT,
+        'Origin': DOMAIN.login,
         'Referer': (
-            config.DOMAIN.login
+            DOMAIN.login
             + '/afreeca/login.php'
         )
     };
@@ -234,7 +241,7 @@ export async function login(
 export async function secondLogin(
         userId, secondPassword = '', options = {}
     ) {
-    const url = (config.DOMAIN.login
+    const url = (DOMAIN.login
         + `/app/LoginAction.php`
     );
 
@@ -249,10 +256,10 @@ export async function secondLogin(
     });
 
     const headers = {
-        'User-Agent': config.USER_AGENT,
-        'Origin': config.DOMAIN.login,
+        'User-Agent': USER_AGENT,
+        'Origin': DOMAIN.login,
         'Referer': (
-            config.DOMAIN.login
+            DOMAIN.login
             + '/afreeca/login.php'
         )
     };
@@ -277,7 +284,7 @@ export async function secondLogin(
 }
 
 export async function logout(options = {}) {
-    const url = (config.DOMAIN.login
+    const url = (DOMAIN.login
         + `/app/LogOut.php?szType=json`
     );
 

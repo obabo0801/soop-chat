@@ -1,6 +1,9 @@
 import { WebSocket } from 'ws';
 
-import * as config from '#soop/config';
+import {
+    SVC
+} from '#soop/config';
+
 import * as http from '#soop/http';
 import * as packet from '#soop/packet';
 import * as log from '#utils/log';
@@ -149,11 +152,11 @@ export class SoopClient {
         this.socket.on('message', data => {
             const parsed = packet.parse(data);
 
-            if (parsed.service === config.SVC.LOGIN) {
+            if (parsed.service === SVC.LOGIN) {
                 this.sendJoinChannel(password);
             }
 
-            if (parsed.service === config.SVC.JOIN_CHANNEL) {
+            if (parsed.service === SVC.JOIN_CHANNEL) {
                 const synAck = parsed.fields[6];
 
                 if (this.cookie) {
@@ -212,15 +215,7 @@ export class SoopClient {
     }
 
     sendJoinChannel(password = '') {
-        return this.send(
-            packet.joinChannel(
-                this.channel?.CHATNO,
-                this.channel?.FTK || '',
-                0,
-                password,
-                packet.joinLog(password)
-            )
-        );
+        return this.send(packet.joinChannel(this.channel?.CHATNO, this.channel?.FTK, 0, password));
     }
 
     sendInfo(synAck = '') {

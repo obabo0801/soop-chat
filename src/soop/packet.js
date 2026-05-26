@@ -33,8 +33,8 @@ export function svcCode(value) {
     return String(value).padStart(4, '0');
 }
 
-export function svcBody(value) {
-    return String(value.length).padStart(6, '0')
+export function packetSize(body) {
+    return String(body.length).padStart(6, '0')
 }
 
 export function makePacket(service, fields = []) {
@@ -44,7 +44,7 @@ export function makePacket(service, fields = []) {
         DELIMITER.ESC
         + DELIMITER.TAB
         + svcCode(service)
-        + svcBody(body)
+        + packetSize(body)
         + '00'
     );
 
@@ -63,17 +63,12 @@ export function addInfo(data = {}) {
             && value !== null
             && value !== ''
         ))
-        .map(([key, value]) => {
+        .map(([key, value]) => (
             `${key}${DELIMITER.DC1}`
             + `${value}${DELIMITER.DC2}`
-        })
+        ))
         .join('')
     );
-}
-
-export function joinLog(password = '') {
-    if (!password) return '';
-    return addInfo({ pwd: password });
 }
 
 export function login(ticket = '', nick = '', flag = 16) {
@@ -86,13 +81,21 @@ export function login(ticket = '', nick = '', flag = 16) {
     return makePacket(SVC.LOGIN, playload);
 }
 
-export function joinChannel(chatno = '', ftk = '', flag = 16, password = '') {
+export function joinChannel(chatno = '', ftk = '', flag = 0, password = '') {
+    const log = addInfo({
+        pwd: password,
+        authInfo = 'NULL',
+        pver = 0,
+        accessSystem = 'html5',
+        nationLang = 'ko_KR'
+    });
+
     const playload = [
         chatno,
         ftk,
         flag,
         password,
-        joinLog(password)
+        log
     ];
 
     return makePacket(SVC.JOIN_CHANNEL, playload);
@@ -141,7 +144,7 @@ export function parse(data) {
 
     const fields = body
         .split(DELIMITER.FF)
-        .filter(Boolean);
+        .slice(1, -1);
 
     return { service, length, flag, fields, raw };
 }

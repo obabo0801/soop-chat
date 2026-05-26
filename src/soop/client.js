@@ -226,7 +226,7 @@ export class SoopClient {
 
     sendUserList() {
         return this.send(
-            packet.UserList()
+            packet.userList()
         );
     }
 

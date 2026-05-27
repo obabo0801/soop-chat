@@ -322,6 +322,7 @@ async function command(input) {
         }
 
         client.sendDirectChat(message, userId);
+        break;
     }
 
     case '/저속모드': {

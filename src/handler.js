@@ -76,7 +76,7 @@ export function packet(soop, packet) {
 
     // 7
     case SVC.SET_BJ_STAT: {
-//        console.log('[SET_BJ_STAT]', packet.fields);
+//        log.info('[SET_BJ_STAT]', packet.fields);
         break;
     }
 
@@ -121,8 +121,15 @@ export function packet(soop, packet) {
     case SVC.SET_USER_FLAG: {
         if (packet.fields.length < 2) {
             soop.emit('error', packet.fields[0]);
-            break;
         }
+
+        soop.userFlag = packet.fields[0];
+
+        soop.emit('userFlag', {
+            userFlag: packet.fields[0],
+            ...checkFlag(packet.fields[0]),
+        });
+        break;
     }
 
     // 13
@@ -154,13 +161,13 @@ export function packet(soop, packet) {
 
     // 18
     case SVC.SEND_BALLOON: {
-//        console.log('[SEND_BALLOON]', packet.fields);
+//        log.info('[SEND_BALLOON]', packet.fields);
         break;
     }
 
     // 19
     case SVC.ICE_MODE: {
-//        console.log('[ICE_MODE]', packet.fields);
+//        log.info('[ICE_MODE]', packet.fields);
         break;
     }
 
@@ -209,7 +216,7 @@ export function packet(soop, packet) {
 
     // 36
     case SVC.BJ_STICKER_ITEM: {
-//        console.log('[BJ_STICKER_ITEM]', packet.fields);
+//        log.info('[BJ_STICKER_ITEM]', packet.fields);
         break;
     }
 
@@ -281,7 +288,7 @@ export function packet(soop, packet) {
 
     // 93
     case SVC.FOLLOW_ITEM_EFFECT: {
-        conolse.log('[FOLLOW_ITEM_EFFECT]', packet.fields);
+        log.info('[FOLLOW_ITEM_EFFECT]', packet.fields);
         break;
     }
 
@@ -323,13 +330,13 @@ export function packet(soop, packet) {
 
     // 109
     case SVC.OGQ_EMOTICON: {
-//        console.log('[OGQ_EMOTICON]', packet.fields);
+//        log.info('[OGQ_EMOTICON]', packet.fields);
         break;
     }
 
     // 110
     case SVC.PUNGASI_START_JSON: {
-//        console.log('[PUNGASI_START_JSON]', packet.fields);
+//        log.info('[PUNGASI_START_JSON]', packet.fields);
         break;
     }
 
@@ -350,7 +357,7 @@ export function packet(soop, packet) {
 
     // 127
     case SVC.CHUSER_EXTEND: {
-//        console.log('[CHUSER_EXTEND]', packet.fields);
+//        log.info('[CHUSER_EXTEND]', packet.fields);
         break;
     }
 

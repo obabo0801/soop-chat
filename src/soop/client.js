@@ -181,10 +181,16 @@ export class SoopClient {
     }
 
     async openSocket() {
+        return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+            reject(new Error('timeout'));
+        }, 10000);
+
         this.socket.on('open', () => {
             this.sendLogin();
             this.startPing();
             this.emit('open');
+            resolve(true);
         });
 
         this.socket.on('message', data => {
@@ -192,6 +198,11 @@ export class SoopClient {
                 this, 
                 packet.parse(data)
             );
+        });
+
+        this.socket.on('error', error => {
+            this.emit('error', error);
+            reject(error);
         });
 
         this.socket.on('close', (code, reason) => {
@@ -203,8 +214,6 @@ export class SoopClient {
             });
         });
 
-        this.socket.on('error', error => {
-            this.emit('error', error);
         });
     }
 
@@ -296,19 +305,6 @@ export class SoopClient {
 
         return this.send(
             packet.setUserFlag(flag)
-        );
-    }
-
-    sendNotice(catNo = 0, message = '') {
-        if (!catNo && !message) {
-            return false;
-        }
-        if (!this.isOpen(this.socket)) {
-            return false;
-        }
-
-        return this.send(
-            packet.setNotice(catNo, message)
         );
     }
 

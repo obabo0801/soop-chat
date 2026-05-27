@@ -1,6 +1,7 @@
 import {
     SVC,
-    DELIMITER
+    DELIMITER,
+    SUBTITLE
 } from '#soop/config';
 
 function toBuffer(value = '') {
@@ -199,17 +200,6 @@ export function setUserFlag(synAck = '') {
     return makePacket(SVC.SET_USER_FLAG, fields);
 }
 
-export function setNotice(catNo = 0, message = '') {
-    const fields = [
-        catNo,
-        1,
-        1,
-        message
-    ];
-
-    return makePacket(SVC.BJ_NOTICE, fields);
-}
-
 export function translation(message = '') {
     const fields = [
         1,
@@ -227,6 +217,20 @@ export function keepAlive() {
 
 export function userList() {
     return makePacket(SVC.CHUSER);
+}
+
+export function makeSubtitle(value = 0) {
+    if (!SUBTITLE[value]) {
+        return null;
+    }
+
+    const fields = [
+        '',
+        value,
+        '',
+    ];
+
+    return makePacket(SVC.USER_LANG_SET, fields);
 }
 
 export function parse(data) {

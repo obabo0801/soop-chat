@@ -56,11 +56,11 @@ const client = new SoopClient({
     }
 
     client.on('open', () => {
-        log.info('[연결]');
+        log.debug('[연결]');
     });
 
     client.on('alarm', (data) => {
-        log.info('[알림]', data);
+        log.warn('[알림]', data);
     });
 
     client.on('chuser', (type, user) => {
@@ -71,13 +71,13 @@ const client = new SoopClient({
             : role;
 
         if (type > 0) {
-            log.info('[입장]', `[${badge}]`, `${user.name}(${user.id})`);
+            log.debug('[입장]', `[${badge}]`, `${user.name}(${user.id})`);
         } else {
             if (user?.kick < 0) {
-                log.info('[퇴장]', `[${badge}]`, `${user.name}(${user.id})님이 강퇴되었습니다. (누적 ${user.count}회)`);
+                log.error('[퇴장]', `[${badge}]`, `${user.name}(${user.id})님이 강퇴되었습니다. (누적 ${user.count}회)`);
                 return;
             }
-            log.info('[퇴장]', `[${badge}]`, `${user.name}(${user.id})`);
+            log.debug('[퇴장]', `[${badge}]`, `${user.name}(${user.id})`);
         }
     });
 
@@ -98,14 +98,14 @@ const client = new SoopClient({
             ? `${role}/${tier}`
             : role;
 
-        log.info('[매니저 채팅]', `[${badge}]`, `${data.userName}(${data.userId}): ${data.message}`);
+        log.load('\x1b[91m[매니저 채팅]\x1b[0m', `[${badge}]`, `${data.userName}(${data.userId}): ${data.message}`);
     });
 
     client.on('dchat', (data) => {
         if (data.type === 1) {
-            log.info('[귓속말]', `${data.fromName}(${data.fromId})님의 귓말 님에게 귓말 ${data.message}`);
+            log.load('[귓속말]', `${data.fromName}(${data.fromId})님의 귓말 님에게 귓말 ${data.message}`);
         } else {
-            log.info('[귓속말]', `${data.toName}(${data.toId})님에게 귓말 ${data.message}`);
+            log.load('[귓속말]', `${data.toName}(${data.toId})님에게 귓말 ${data.message}`);
         }
     });
 
@@ -179,17 +179,20 @@ const client = new SoopClient({
         }
     });
 
-
     client.on('mission', (data) => {
-        log.info('[미션]', data);
+        log.warn('[미션]', data);
     });
 
-    client.on('dumb', () => {
-        log.info('[채금]', `${data.userName}(${data.userId})님이 채금되었습니다.`, data);
+    client.on('dumb', (data) => {
+        log.error('[채금]', `${data.userName}(${data.userId})님이 채금되었습니다.`, data);
+    });
+
+    client.on('subtitle', (data) => {
+        log.info('\x1b[91m[자막]\x1b[0m', `\x1b[1m${data.message}\x1b[0m`);
     });
 
     client.on('packet', data => {
-        log.info('[패킷]', {
+        log.list('[패킷]', {
             CODE: data.service,
             SIZE: data.length,
             FLAG: data.flag,
@@ -198,7 +201,7 @@ const client = new SoopClient({
     });
 
     client.on('close', () => {
-        log.info('[종료]');
+        log.debug('[종료]');
     });
 
 
@@ -269,8 +272,6 @@ async function command(input) {
         });
 
         console.log('[공지]', result);
-
-//        client.sendNotice(catNo, message);
         break;
     }
 
@@ -308,21 +309,15 @@ async function command(input) {
         const userId = rest[0];
         const message = rest.slice(1).join(' ');
 
-        client.sendDirectChat(message, userId);
-        return;
-        if (!userId) {
-            log.warn('사용법: /to [유저 아이디]');
-            break;
-        };
-        const mess2age = rest.slice(1).join(' ');
-        if (!mess2age) {
+        if (!userId || !message) {
             log.warn('사용법: /to [유저 아이디] [메시지]');
             break;
-        };
+        }
+
         client.sendDirectChat(message, userId);
     }
 
-    case '/슬로우': {
+    case '/저속모드': {
         client.sendslowMode(...rest);
         break;
     }

@@ -3,7 +3,8 @@ import {
     DELIMITER,
     USER_FLAG1,
     USER_FLAG2,
-    ICE_AUTH
+    ICE_AUTH,
+    SUBTITLE
 } from '#soop/config';
 
 export function packet(soop, packet) {
@@ -308,11 +309,15 @@ export function packet(soop, packet) {
 
     // 121
     case SVC.MISSION: {
+        let data = null;
+
         try {
-            const data = JSON.parse(packet.fields[0]);
+            data = JSON.parse(packet.fields[0]);
         } catch (error) {
             soop.emit('error', error);
+            break;
         }
+
         soop.emit('mission', data);
         break;
     }
@@ -320,6 +325,24 @@ export function packet(soop, packet) {
     // 127
     case SVC.CHUSER_EXTEND: {
 //        console.log('[CHUSER_EXTEND]', packet.fields);
+        break;
+    }
+
+    // 136
+    case SVC.GLOBAL_SUBTITLE: {
+        const lang = Number(packet.fields[2]);
+        soop.emit('subtitle', {
+            streamerId: packet.fields[0],
+            lang: SUBTITLE[lang],
+            message: packet.fields[3]
+        });
+        break;
+    }
+
+    // 137
+    case SVC.USER_LANG_SET: {
+        const lang = Number(packet.fields[1]);
+        soop.emit('alarm', `자막 언어 설정이 변경되었습니다. (${SUBTITLE_LANG[lang]})`);
         break;
     }
 

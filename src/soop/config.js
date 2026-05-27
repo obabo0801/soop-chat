@@ -131,6 +131,8 @@ export const USER_FLAG1 = {
     QUICKVIEW: 1 << 19,
     MOBILE_WEB: 1 << 23,
     NIGHTBOT: 1 << 26,
+
+    BLOCK: 0x20000,
 };
 
 export const USER_FLAG2 = {
@@ -154,6 +156,15 @@ export const USER_FLAG2 = {
     FOLLOW_TIER3: 1 << 20,
 };
 
+export const ICE_AUTH = {
+    STREAMER: 16,
+    FAN_CLUB: 32,
+    SUPPORTER: 64,
+    TOP_FAN: 128,
+    SUBSCRIBER: 256,
+    MANAGER: 512,
+};
+
 export const DELIMITER = {
     ESC: '\x1b',
     TAB: '\x09',
@@ -170,11 +181,16 @@ export const DOMAIN = {
     chapi: 'https://chapi.sooplive.com',
     channel: 'https://api-channel.sooplive.com',
     event: 'https://afevent2.sooplive.com',
+    vod: 'https://vod.sooplive.com'
 };
 
 export const CONTENT_TYPE = (
     'application/x-www-form-urlencoded'
 );
+
+export const ACCEPT_LANGUAGE = (
+    'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7'
+)
 
 export const USER_AGENT = (
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '

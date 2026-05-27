@@ -131,6 +131,15 @@ export function managerChat(message = '') {
     return makePacket(SVC.MANAGER_CHAT, fields);
 }
 
+export function directChat(message = '', targetId = '') {
+    const fields = [
+        message,
+        targetId
+    ];
+
+    return makePacket(SVC.DIRECT_CHAT, fields);
+}
+
 export function slowMode(chatno = 0, count = 0) {
     const fields = [
         chatno,
@@ -138,6 +147,14 @@ export function slowMode(chatno = 0, count = 0) {
     ];
 
     return makePacket(SVC.SLOW_MODE, fields);
+}
+
+export function kickUserList(bno = 0) {
+    const fields = [
+        bno
+    ];
+
+    return makePacket(SVC.KICK_USER_LIST, fields);
 }
 
 export function login(ticket = '') {
@@ -180,6 +197,28 @@ export function setUserFlag(synAck = '') {
     ];
 
     return makePacket(SVC.SET_USER_FLAG, fields);
+}
+
+export function setNotice(catNo = 0, message = '') {
+    const fields = [
+        catNo,
+        1,
+        1,
+        message
+    ];
+
+    return makePacket(SVC.BJ_NOTICE, fields);
+}
+
+export function translation(message = '') {
+    const fields = [
+        1,
+        1,
+        message,
+        3
+    ];
+
+    return makePacket(SVC.TRANSLATION, fields);
 }
 
 export function keepAlive() {

@@ -70,7 +70,7 @@ export class SoopClient {
             try {
                 handler(...args);
             } catch (error) {
-                log.error(error);
+                console.log(error);
             }
         }
     }
@@ -217,6 +217,22 @@ export class SoopClient {
         return true;
     }
 
+    sendLogin() {
+        return this.send(
+            packet.login(this.channel?.TK || '')
+        );
+    }
+
+    sendJoinChannel(password = '') {
+        return this.send(
+            packet.joinChannel(
+                this.channel,
+                password,
+                this.cookie?._au || this.uuid
+            )
+        );
+    }
+
     sendChat(message = '') {
         if (!message && !this.isOpen(this.socket)) {
             return false;
@@ -237,6 +253,29 @@ export class SoopClient {
         );
     }
 
+    sendKickUserList(bano = 0) {
+        if (bano === 0 && !this.isOpen(this.socket)) {
+            return false;
+        }
+
+        return this.send(
+            packet.kickUserList(bano)
+        );
+    }
+
+    sendDirectChat(message = '', targetId = '') {
+        if (!message && !targetId) {
+            return false;
+        }
+        if (!this.isOpen(this.socket)) {
+            return false;
+        }
+
+        return this.send(
+            packet.directChat(message, targetId)
+        );
+    }
+
     sendslowMode(count = 0) {
         if (!count && !this.isOpen(this.socket)) {
             return false;
@@ -250,26 +289,79 @@ export class SoopClient {
         );
     }
 
-    sendLogin() {
-        return this.send(
-            packet.login(this.channel?.TK || '')
-        );
-    }
-
-    sendJoinChannel(password = '') {
-        return this.send(
-            packet.joinChannel(
-                this.channel,
-                password,
-                this.cookie?._au || this.uuid
-            )
-        );
-    }
-
     sendUserFlag(flag = '') {
+        if (!flag && !this.isOpen(this.socket)) {
+            return false;
+        }
+
         return this.send(
             packet.setUserFlag(flag)
         );
+    }
+
+    sendNotice(catNo = 0, message = '') {
+        if (!catNo && !message) {
+            return false;
+        }
+        if (!this.isOpen(this.socket)) {
+            return false;
+        }
+
+        return this.send(
+            packet.setNotice(catNo, message)
+        );
+    }
+
+    sendTranslation(message = '') {
+        if (!message && !this.isOpen(this.socket)) {
+            return false;
+        }
+
+        return this.send(
+            packet.translation(message)
+        );
+    }
+
+    async sendIceMode({
+            streamer = true,
+            fanClub = false,
+            supporter = false,
+            topFan = false,
+            subscriber = false,
+            manager = false,
+            setType = 'ice_on'
+        } = {}) {
+        const result = await http.updateIceMode({
+            broadNo: this.channel?.BNO,
+            chatUserId: this.userId,
+            iceAuth: setType === 'ice_on'
+                ? http.makeIceAuthString({
+                streamer,
+                fanClub,
+                supporter,
+                topFan,
+                subscriber,
+                manager
+            }) : 0,
+            setType: setType,
+            options: {
+                cookie: this.cookie
+            },
+        });
+
+        return result;
+    }
+
+    async sendIceOption(count = 0) {
+        const result = await http.setIceOption({
+            giftCount: count,
+            subscriptionDate: 0,
+            options: {
+                cookie: this.cookie
+            }
+        });
+
+        return result;
     }
 
     sendUserList() {

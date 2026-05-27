@@ -30,9 +30,9 @@ const client = new SoopClient({
     });
 
     if (info.IS_LOGIN === 1) {
-        log.warn(`[INFO] ${info.LOGIN_NICK}(${info.LOGIN_ID}) 로그인`);
+        log.warn(`[정보] ${info.LOGIN_NICK}(${info.LOGIN_ID}) 로그인`);
     } else {
-        log.warn('[INFO] 비로그인');
+        log.warn('[정보] 비로그인');
     }
 
     const live = await http.getLiveInfo(streamerId, {
@@ -41,19 +41,26 @@ const client = new SoopClient({
     client.channel = live;
 
     if (live?.TITLE) {
-        log.info(`[TITLE] ${live.TITLE}`);
-        log.info(`[HOST] ${live.BJNICK}(${live.BJID})`);
-        if (live.BPWD) {
-            log.warn(`[BPWD] ${live.BPWD}`);
+        log.info(`[제목] ${live.TITLE}`);
+
+        if (live.RESULT === 1) {
+            log.info(`[스트리머] ${live.BJNICK}(${live.BJID})`);
+        } else {
+            log.warn(`[스트리머] ${live.RESULT}`);
         }
+        if (live.BPWD) {
+            log.warn(`[비밀번호] ${live.BPWD}`);
+        }
+    } else {
+        log.warn('[정보] 방송 정보 없음');
     }
 
     client.on('open', () => {
-        log.info('[OPEN]');
+        log.info('[연결]');
     });
 
     client.on('alarm', (data) => {
-        log.info('[ALARM]', data);
+        log.info('[알림]', data);
     });
 
     client.on('chuser', (type, user) => {
@@ -66,6 +73,10 @@ const client = new SoopClient({
         if (type > 0) {
             log.info('[입장]', `[${badge}]`, `${user.name}(${user.id})`);
         } else {
+            if (user?.kick < 0) {
+                log.info('[퇴장]', `[${badge}]`, `${user.name}(${user.id})님이 강퇴되었습니다. (누적 ${user.count}회)`);
+                return;
+            }
             log.info('[퇴장]', `[${badge}]`, `${user.name}(${user.id})`);
         }
     });
@@ -91,11 +102,94 @@ const client = new SoopClient({
     });
 
     client.on('dchat', (data) => {
-        log.info('[귓속말]', `[${badge}]`, `${data.receiverName}(${data.receiverId})님에게 귓말 ${data.message}`);
+        if (data.type === 1) {
+            log.info('[귓속말]', `${data.fromName}(${data.fromId})님의 귓말 님에게 귓말 ${data.message}`);
+        } else {
+            log.info('[귓속말]', `${data.toName}(${data.toId})님에게 귓말 ${data.message}`);
+        }
+    });
+
+    client.on('notice', (data) => {
+        log.info('[공지]', data.message);
+    });
+
+    client.on('poll', async (data, result) => {
+        result = await http.getVote(data.streamerId, data.no, {
+            cookie: client.cookie,
+        });
+        let text = result.list;
+
+        if (text) {
+            text = text.map(item => `${item.answer_no}. ${item.answer_title} (${item.answer_total}표)`).join('\n');
+        }
+
+        switch (data.status) {
+        case 1:
+            log.info('[투표] 새로운 투표가 시작되었습니다', `\n${result.title}\n${text}`);
+            break;
+        case 2:
+            log.info('[투표] 투표가 종료되었습니다.');
+            client.pollData = null;
+            break;
+        case 3:
+            log.info('[투표] 투표가 마감되었습니다.', `\n${result.title}\n${text}`);
+            break;
+        case 4:
+            log.info('[투표] 투표 결과가 공개되었습니다.', `\n${result.title}\n${text}`);
+            break;
+        default:
+            log.info('[투표] 알 수 없는 투표 상태입니다.');
+        }
+    });
+
+    client.on('ice', (data) => {
+        if (data.index === 0) {
+            log.info('[알림] 채팅을 녹였습니다.');
+        } else {
+            const names = [];
+
+            if (data.auth.isStreamerAllowed) {
+                names.push('스트리머');
+            }
+
+            if (data.auth.isTopFanAllowed) {
+                names.push('열혈팬');
+            }
+
+            if (data.auth.isSubscriberAllowed) {
+                names.push('구독팬');
+            }
+
+            if (data.auth.isFanClubAllowed) {
+                names.push(
+                    data.money > 0
+                        ? `팬클럽(${data.money}개↑)`
+                        : '팬클럽'
+                );
+            }
+
+            if (data.auth.isSupporterAllowed) {
+                names.push('서포터');
+            }
+
+            if (data.auth.isManagerAllowed) {
+                names.push('매니저');
+            }
+            log.info('[얼음] 채팅을 얼렸습니다.', `${names.join(', ')}`);
+        }
+    });
+
+
+    client.on('mission', (data) => {
+        log.info('[미션]', data);
+    });
+
+    client.on('dumb', () => {
+        log.info('[채금]', `${data.userName}(${data.userId})님이 채금되었습니다.`, data);
     });
 
     client.on('packet', data => {
-        log.info('[PACKET]', {
+        log.info('[패킷]', {
             CODE: data.service,
             SIZE: data.length,
             FLAG: data.flag,
@@ -104,13 +198,12 @@ const client = new SoopClient({
     });
 
     client.on('close', () => {
-        log.info('[CLOSE]');
+        log.info('[종료]');
     });
 
 
     client.on('error', error => {
-        console.log(error);
-//        log.error('[ERROR]', error);
+        log.error('[에러]', error);
     });
 
     await client.connect();
@@ -120,6 +213,114 @@ async function command(input) {
     const [raw, ...rest] = input.trim().split(/\s+/);
 
     switch (raw.toLowerCase()) {
+    
+    case '/인원': {
+        await client.sendKickUserList(client.channel?.BNO);
+        break;
+    }
+
+    case '/개수': {
+        const r = rest[0];
+        const result = await client.sendIceOption(
+            Number(r) || 0
+        );
+        console.log(result);
+        break;
+        break;
+    }
+    
+    case '/얼음': {
+        const r = rest[0];
+        const result = await client.sendIceMode({
+            streamer: true,
+            fanClub: true,
+            supporter: true,
+            subscriber: true,
+            manager: true,
+            setType: 'ice_on'
+        });
+        console.log(result);
+        break;
+    }
+    
+    case '/땡': {
+        const r = rest[0];
+        const result = await client.sendIceMode({
+            setType: 'ice_off'
+        });
+        console.log(result);
+        break;
+    }
+
+    case '/테스트': {
+        const result = await http.startVote('테스트 투표', {
+            cookie: client.cookie
+        });
+        console.log('[테스트]', result);
+        break;
+    }
+
+    case '/공지': {
+        const catNo = Number(client.channel?.BNO) || 0;
+        const message = rest.join(' ');
+
+        let result = await http.setChatNotice(catNo, message, 1, {
+            cookie: client.cookie
+        });
+
+        console.log('[공지]', result);
+
+//        client.sendNotice(catNo, message);
+        break;
+    }
+
+    case '/번역': {
+        const message = rest.join(' ');
+        client.sendTranslation(message);
+        break;
+    }
+    
+    case '/투표': {
+        if (!client.pollData) {
+            console.log('진행 중인 투표가 없습니다.');
+            break;
+        }
+        const userId = client.pollData.streamerId;
+        const surveyNo = client.pollData.no;
+        const message = rest[0]
+
+        let result;
+        if (!message) {
+            result = await http.getVote(userId, surveyNo, {
+                cookie: client.cookie,
+            });
+            console.log('[투표]', result);
+            break;
+        }
+        result = await http.setVote(userId, surveyNo, message, {
+            cookie: client.cookie,
+        });
+        console.log('[투표]', result);
+        break;
+    }
+
+    case '/to': {
+        const userId = rest[0];
+        const message = rest.slice(1).join(' ');
+
+        client.sendDirectChat(message, userId);
+        return;
+        if (!userId) {
+            log.warn('사용법: /to [유저 아이디]');
+            break;
+        };
+        const mess2age = rest.slice(1).join(' ');
+        if (!mess2age) {
+            log.warn('사용법: /to [유저 아이디] [메시지]');
+            break;
+        };
+        client.sendDirectChat(message, userId);
+    }
 
     case '/슬로우': {
         client.sendslowMode(...rest);
@@ -136,15 +337,22 @@ async function command(input) {
         break;
     }
 
-    case '/': {
-        log.warn('존재하지 않는 명령어입니다.');
-        break;
-    }
-
     default:
+        if (input.slice(0, 1) === '/') {
+            log.warn('존재하지 않는 명령어입니다.');
+            break;
+        }
+
         client.sendChat(input);
     }
 
+}
+
+export function shutdown() {
+    pause();
+    close();
+    client.disconnect();
+    process.exit(0);
 }
 
 export function prompt() {
@@ -168,3 +376,5 @@ rl.on('line', async (input) => {
     }
     await command(cmd);
 });
+
+rl.on('SIGINT', shutdown);

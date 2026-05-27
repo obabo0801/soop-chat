@@ -1,7 +1,9 @@
 import {
     SVC,
+    DELIMITER,
     USER_FLAG1,
-    USER_FLAG2
+    USER_FLAG2,
+    ICE_AUTH
 } from '#soop/config';
 
 export function packet(soop, packet) {
@@ -27,6 +29,13 @@ export function packet(soop, packet) {
         if (soop.cookie?.AuthTicket) {
             soop.sendUserFlag(soop.userFlag);
         }
+        break;
+    }
+
+    // 3
+    case SVC.QUIT_CHANNEL: {
+        soop.emit('error', `강제 퇴장되었습니다. (처리자 ${packet.fields[1]})`, packet.fields);
+        soop.disconnect();
         break;
     }
 
@@ -62,6 +71,30 @@ export function packet(soop, packet) {
         break;``
     }
 
+    // 7
+    case SVC.SET_BJ_STAT: {
+//        console.log('[SET_BJ_STAT]', packet.fields);
+        break;
+    }
+
+    // 8
+    case SVC.SET_DUMB: {
+        console.log('[SET_DUMB]', packet.fields);
+
+        soop.emit('dumb', {
+            userId: packet.fields[0],
+            userFlag: packet.fields[1],
+            count: Number(packet.fields[2]),
+            index: Number(packet.fields[3]),
+            streamerId: packet.fields[4],
+            unknown1: Number(packet.fields[5]),
+            unknown2: packet.fields[5],
+            userName: packet.fields[7],
+            ...checkFlag(packet.fields[1])
+        });
+        break;
+    }
+
     // 9
     case SVC.DIRECT_CHAT: {
         if (packet.fields.length < 2) {
@@ -69,14 +102,14 @@ export function packet(soop, packet) {
             break;
         }
 
-        console.log('[DIRECT_CHAT]', packet.fields);
-
         soop.emit('dchat', {
             message: packet.fields[0],
-            userId: packet.fields[1],
-            receiverId: packet.fields[2],
-            receiverName: packet.fields[5],
-            userName: packet.fields[6],
+            toId: packet.fields[1],
+            fromId: packet.fields[2],
+            type: Number(packet.fields[3]),
+            unknown: Number(packet.fields[4]),
+            fromName: packet.fields[5],
+            toName: packet.fields[6],
             userFlag: packet.fields[7],
             ...checkFlag(packet.fields[7])
         });
@@ -93,29 +126,45 @@ export function packet(soop, packet) {
 
     // 13
     case SVC.SET_SUB_BJ: {
-        const userId = packet.fields[0];
-        const userName = packet.fields[3];
-        const flag = checkFlag(packet.fields[1]);
+        if (packet.fields.length > 4) {
+            const flag = checkFlag(packet.fields[0]);
+            const userId = packet.fields[1];
+            const userName = packet.fields[2];
 
-        if (flag.isManager) {
-            soop.emit('alarm', `${userName}(${userId})님이 매니저가 되셨습니다.`);
+            if (flag.isBlockt) {
+                soop.emit('alarm', `${userName}(${userId})님이 귓속말 수신 거부 하셨습니다.`);
+            } else {
+                soop.emit('alarm', `${userName}(${userId})님이 귓속말 수신 허용 하셨습니다.`);
+            }
+
         } else {
-            soop.emit('alarm', `${userName}(${userId})님이 매니저에서 해임 되셨습니다.`);
-        }
+            const userId = packet.fields[0];
+            const userName = packet.fields[3];
+            const flag = checkFlag(packet.fields[1]);
+
+            if (flag.isManager) {
+                soop.emit('alarm', `${userName}(${userId})님이 매니저가 되셨습니다.`);
+            } else {
+                soop.emit('alarm', `${userName}(${userId})님이 매니저에서 해임 되셨습니다.`);
+            }
+        }        
         break;
     }
 
     // 19
     case SVC.ICE_MODE: {
-        const mode = checkFlag2(packet.fields[2]);
-
-        console.log('[ICE_MODE]', packet.fields);
+//        console.log('[ICE_MODE]', packet.fields);
         break;
     }
 
     // 21
     case SVC.ICE_MODE_EX: {
-        console.log('[ICE_MODE_EX]', packet.fields);
+        soop.emit('ice', {
+            index: Number(packet.fields[0]),
+            choice: Number(packet.fields[1]),
+            auth: parseIceAuth(packet.fields[2]),
+            money: Number(packet.fields[3])
+        });
         break;
     }
 
@@ -126,11 +175,10 @@ export function packet(soop, packet) {
             break;
         }
 
-        console.log('[SLOW_MODE]', packet.fields);
         const count = Number(packet.fields[1]);
         soop.emit('alarm', count > 0
-            ? `슬로우 모드가 활성화되었습니다. (채팅 간 ${count}초 간격)`
-            : '슬로우 모드가 해제되었습니다.'
+            ? `저속모드가 활성화되었습니다.\n${count}초 간격으로 채팅 입력이 가능합니다.`
+            : '저속모드가 비활성화되었습니다.\n지연 없이 채팅 입력이 가능합니다.'
         );
         break;
     }
@@ -152,33 +200,120 @@ export function packet(soop, packet) {
         break;
     }
 
+    // 50
+    case SVC.NOTIFY_POLL: {
+        const status = Number(packet.fields[0]);
+
+        const pollData = {
+            streamerId: packet.fields[1],
+            status,
+            no: Number(packet.fields[2]),
+            show: Number(packet.fields[3]),
+        };
+
+        soop.pollData = pollData;
+
+        soop.emit('poll', pollData);
+        break;
+    }
+
     // 54
     case SVC.BAN_WORD: {
-        console.log('[BAN_WORD]', packet.fields);
+        const original = packet.fields[0];
+        const replacement = packet.fields[1].split(DELIMITER.ACK);
+        soop.emit('alarm', `금칙어가 적용되었습니다. (${original} -> ${replacement})`);
+        break;
+    }
+
+    // 76
+    case SVC.KICK_AND_CANCEL: {
+        const type = Number(packet.fields[0]);
+        const userId = packet.fields[1];
+        const userName = packet.fields[2];
+        soop.emit('alarm', `${userName}(${userId})님의 강제퇴장이 취소되었습니다.`, type);
+        break;
+    }
+
+    // 77
+    case SVC.KICK_USER_LIST: {
+        soop.emit('alarm', `강제 퇴장 유저 목록 (${packet.fields.join(', ')})`);
+        break;
+    }
+
+    // 88
+    case SVC.CLOSE_BROAD: {
+        soop.disconnect();
         break;
     }
 
     // 90
     case SVC.KICK_MSG_STATE: {
-        console.log('[KICK_MSG_STATE]', packet.fields);
+        const catNo = Number(packet.fields[0]);
+        const index = Number(packet.fields[1]);
+        if (index === 0) {
+            soop.emit('alarm', `강제 퇴장 메시지 유저에게 보이기 ON`);
+        } else {
+            soop.emit('alarm', `강제 퇴장 메시지 유저에게 보이기 OFF`);
+        }
         break;
     }
 
     // 94
     case SVC.TRANSLATION_STATE: {
-        console.log('[TRANSLATION_STATE]', packet.fields);
+        const index = Number(packet.fields[0]);
+        if (index === 1) {
+            soop.emit('alarm', `채팅 번역 기능 ON`);
+        } else {
+            soop.emit('alarm', `채팅 번역 기능 OFF`);
+        }
         break;
+    }
+
+    // 95
+    case SVC.TRANSLATION: {
+        const idx = Number(packet.fields[0]);
+        const mode = Number(packet.fields[1]);
+        const message = packet.fields[2];
+        const orilang = Number(packet.fields[3]);
+        const tralang = Number(packet.fields[4]);
+        soop.emit('alarm', `채팅 번역 : ${message} (${orilang} -> ${tralang})`);
+        break
     }
 
     // 104
     case SVC.BJ_NOTICE: {
-        console.log('[BJ_NOTICE]', packet.fields);
+        if (packet.fields.length < 2) {
+            soop.emit('error', packet.fields[0]);
+            break;
+        }
+
+        soop.emit('notice', {
+            catNo: Number(packet.fields[0]),
+            message: packet.fields[3]
+        });
+        break;
+    }
+
+    // 109
+    case SVC.OGQ_EMOTICON: {
+        console.log('[OGQ_EMOTICON]', packet.fields);
         break;
     }
 
     // 110
     case SVC.PUNGASI_START_JSON: {
-        console.log('[PUNGASI_START_JSON]', packet.fields);
+//        console.log('[PUNGASI_START_JSON]', packet.fields);
+        break;
+    }
+
+    // 121
+    case SVC.MISSION: {
+        try {
+            const data = JSON.parse(packet.fields[0]);
+        } catch (error) {
+            soop.emit('error', error);
+        }
+        soop.emit('mission', data);
         break;
     }
 
@@ -264,10 +399,16 @@ export function checkFlag(flag = '0|0') {
     const { flag1, flag2 } = splitFlag(flag);
 
     return {
-        raw: flag,
         flag1,
         flag2,
+        ...checkFlag1(flag1),
+        ...checkFlag2(flag2),
+    };
+}
 
+export function checkFlag1(flag1 = 0) {
+    flag1 = Number(flag1) || 0;
+    return {
         isAdmin: hasFlag(flag1, USER_FLAG1.ADMIN),
         isHidden: hasFlag(flag1, USER_FLAG1.HIDDEN),
         isBJ: hasFlag(flag1, USER_FLAG1.BJ),
@@ -280,7 +421,13 @@ export function checkFlag(flag = '0|0') {
         isQuickView: hasFlag(flag1, USER_FLAG1.QUICKVIEW),
         isMobileWeb: hasFlag(flag1, USER_FLAG1.MOBILE_WEB),
         isNightBot: hasFlag(flag1, USER_FLAG1.NIGHTBOT),
+        isBlockt: hasFlag(flag1, USER_FLAG1.BLOCK)
+    };
+}
 
+export function checkFlag2(flag2 = 0) {
+    flag2 = Number(flag2) || 0;
+    return {
         isGlobalPc: hasFlag(flag2, USER_FLAG2.GLOBAL_PC),
         isClan: hasFlag(flag2, USER_FLAG2.CLAN),
         isTopClan: hasFlag(flag2, USER_FLAG2.TOP_CLAN),
@@ -297,20 +444,18 @@ export function checkFlag(flag = '0|0') {
     };
 }
 
-export function checkFlag2(flag1 = '0') {
+export function parseIceAuth(mask = 0) {
+    mask = Number(mask) || 0;
+
     return {
-        isAdmin: hasFlag(flag1, USER_FLAG1.ADMIN),
-        isHidden: hasFlag(flag1, USER_FLAG1.HIDDEN),
-        isBJ: hasFlag(flag1, USER_FLAG1.BJ),
-        isGuest: hasFlag(flag1, USER_FLAG1.GUEST),
-        isFanClub: hasFlag(flag1, USER_FLAG1.FANCLUB),
-        isManager: hasFlag(flag1, USER_FLAG1.MANAGER),
-        isMobile: hasFlag(flag1, USER_FLAG1.MOBILE),
-        isTopFan: hasFlag(flag1, USER_FLAG1.TOP_FAN),
-        isRealName: hasFlag(flag1, USER_FLAG1.REAL_NAME),
-        isQuickView: hasFlag(flag1, USER_FLAG1.QUICKVIEW),
-        isMobileWeb: hasFlag(flag1, USER_FLAG1.MOBILE_WEB),
-        isNightBot: hasFlag(flag1, USER_FLAG1.NIGHTBOT)
+        raw: mask,
+
+        isStreamerAllowed: hasFlag(mask, ICE_AUTH.STREAMER),
+        isFanClubAllowed: hasFlag(mask, ICE_AUTH.FAN_CLUB),
+        isSupporterAllowed: hasFlag(mask, ICE_AUTH.SUPPORTER),
+        isTopFanAllowed: hasFlag(mask, ICE_AUTH.TOP_FAN),
+        isSubscriberAllowed: hasFlag(mask, ICE_AUTH.SUBSCRIBER),
+        isManagerAllowed: hasFlag(mask, ICE_AUTH.MANAGER),
     };
 }
 

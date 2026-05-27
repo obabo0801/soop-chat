@@ -87,8 +87,17 @@ const client = new SoopClient({
         const badge = tier
             ? `${role}/${tier}`
             : role;
+        
+        if (data.message?.includes('ㅊㄱㅇ')) {
+            log.warn('[필터]', `[${badge}]`, `${data.userName}(${data.userId}): ${data.message}`);
+            return;
+        }
 
-//        log.info('[채팅]', `[${badge}]`, `${data.userName}(${data.userId}): ${data.message}`);
+        if (role === '일반' || role === '팬클럽') {
+            return;
+        }
+
+        log.info('[채팅]', `[${badge}]`, `${data.userName}(${data.userId}): ${data.message}`);
     });
 
     client.on('mchat', (data) => {
@@ -177,6 +186,10 @@ const client = new SoopClient({
             }
             log.info('[얼음] 채팅을 얼렸습니다.', `${names.join(', ')}`);
         }
+    });
+
+    client.on('balloon', (data) => {
+        log.load('\x1b[96m[후원]\x1b[0m', `${data.userName}(${data.userId})님이 ${data.money}원 풍선 후원`);
     });
 
     client.on('mission', (data) => {

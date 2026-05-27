@@ -161,7 +161,13 @@ export function packet(soop, packet) {
 
     // 18
     case SVC.SEND_BALLOON: {
-//        log.info('[SEND_BALLOON]', packet.fields);
+        soop.emit('balloon', {
+            streamerId: packet.fields[0],
+            userId: packet.fields[1],
+            userName: packet.fields[2],
+            money: Number(packet.fields[3]),
+            join: Number(packet.fields[4])
+        });
         break;
     }
 
@@ -265,6 +271,12 @@ export function packet(soop, packet) {
         const list = parseKickUserListText(packet.fields.join(', '));
         const text = formatKickUserList(list);
         soop.emit('alarm', `강제 퇴장 유저 목록 (${list.length}명)\n${text}`);
+        break;
+    }
+
+    // 87
+    case SVC.ADCON_EFFECT: {
+//        log.info('[ADCON_EFFECT]', packet.fields);
         break;
     }
 

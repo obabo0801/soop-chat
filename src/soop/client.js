@@ -1,6 +1,7 @@
 import { WebSocket } from 'ws';
 import crypto from 'crypto';
 import * as handler from '#handler';
+import * as log from '#utils/log';
 
 import {
     SVC,
@@ -9,7 +10,6 @@ import {
 
 import * as http from '#soop/http';
 import * as packet from '#soop/packet';
-import * as log from '#utils/log';
 
 export class SoopClient {
     constructor(options = {}) {
@@ -70,7 +70,7 @@ export class SoopClient {
             try {
                 handler(...args);
             } catch (error) {
-                console.log(error);
+                log.error(error.message);
             }
         }
     }
@@ -358,6 +358,16 @@ export class SoopClient {
         });
 
         return result;
+    }
+
+    sendSubTitle(value = 0) {
+        if (!value && !this.isOpen(this.socket)) {
+            return false;
+        }
+
+        return this.send(
+            packet.makeSubtitle(value)
+        );
     }
 
     sendUserList() {

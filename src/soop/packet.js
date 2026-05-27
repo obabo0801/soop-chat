@@ -225,9 +225,7 @@ export function makeSubtitle(value = 0) {
     }
 
     const fields = [
-        '',
         value,
-        '',
     ];
 
     return makePacket(SVC.USER_LANG_SET, fields);

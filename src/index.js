@@ -71,13 +71,13 @@ const client = new SoopClient({
             : role;
 
         if (type > 0) {
-            log.debug('[입장]', `[${badge}]`, `${user.name}(${user.id})`);
+//            log.debug('[입장]', `[${badge}]`, `${user.name}(${user.id})`);
         } else {
-            if (user?.kick < 0) {
-                log.error('[퇴장]', `[${badge}]`, `${user.name}(${user.id})님이 강퇴되었습니다. (누적 ${user.count}회)`);
+            if (user?.kick === 1) {
+//                log.debug('[퇴장]', `[${badge}]`, `${user.name}(${user.id})`);
                 return;
             }
-            log.debug('[퇴장]', `[${badge}]`, `${user.name}(${user.id})`);
+            log.error('[퇴장]', `[${badge}]`, `${user.name}(${user.id})님이 강퇴되었습니다. (누적 ${user.count}회)`);
         }
     });
 
@@ -88,7 +88,7 @@ const client = new SoopClient({
             ? `${role}/${tier}`
             : role;
 
-        log.info('[채팅]', `[${badge}]`, `${data.userName}(${data.userId}): ${data.message}`);
+//        log.info('[채팅]', `[${badge}]`, `${data.userName}(${data.userId}): ${data.message}`);
     });
 
     client.on('mchat', (data) => {
@@ -184,7 +184,7 @@ const client = new SoopClient({
     });
 
     client.on('dumb', (data) => {
-        log.error('[채금]', `${data.userName}(${data.userId})님이 채금되었습니다.`, data);
+        log.error('[채금]', `${data.userName}(${data.userId})님이 채팅금지 ${data.count}회가 되었습니다. (${data.time}초)`, `처리자 ${data.streamerId}`);
     });
 
     client.on('subtitle', (data) => {
@@ -210,12 +210,19 @@ const client = new SoopClient({
     });
 
     await client.connect();
+    await client.sendSubTitle(0);
 })();
 
 async function command(input) {
     const [raw, ...rest] = input.trim().split(/\s+/);
 
     switch (raw.toLowerCase()) {
+    
+    case '/자막': {
+        const r = rest[0];
+        const result = await client.sendSubTitle(Number(r));
+        break;
+    }
     
     case '/인원': {
         await client.sendKickUserList(client.channel?.BNO);
@@ -227,7 +234,7 @@ async function command(input) {
         const result = await client.sendIceOption(
             Number(r) || 0
         );
-        console.log(result);
+        log.info(result);
         break;
         break;
     }
@@ -242,7 +249,7 @@ async function command(input) {
             manager: true,
             setType: 'ice_on'
         });
-        console.log(result);
+        log.info(result);
         break;
     }
     
@@ -251,7 +258,7 @@ async function command(input) {
         const result = await client.sendIceMode({
             setType: 'ice_off'
         });
-        console.log(result);
+        log.info(result);
         break;
     }
 
@@ -259,7 +266,7 @@ async function command(input) {
         const result = await http.startVote('테스트 투표', {
             cookie: client.cookie
         });
-        console.log('[테스트]', result);
+        log.info('[테스트]', result);
         break;
     }
 
@@ -271,7 +278,7 @@ async function command(input) {
             cookie: client.cookie
         });
 
-        console.log('[공지]', result);
+        log.info('[공지]', result);
         break;
     }
 
@@ -283,7 +290,7 @@ async function command(input) {
     
     case '/투표': {
         if (!client.pollData) {
-            console.log('진행 중인 투표가 없습니다.');
+            log.info('진행 중인 투표가 없습니다.');
             break;
         }
         const userId = client.pollData.streamerId;
@@ -295,13 +302,13 @@ async function command(input) {
             result = await http.getVote(userId, surveyNo, {
                 cookie: client.cookie,
             });
-            console.log('[투표]', result);
+            log.info('[투표]', result);
             break;
         }
         result = await http.setVote(userId, surveyNo, message, {
             cookie: client.cookie,
         });
-        console.log('[투표]', result);
+        log.info('[투표]', result);
         break;
     }
 
@@ -363,6 +370,11 @@ export function close() {
 }
 
 rl.on('line', async (input) => {
+    if (!client.socket) {
+        log.warn('서버에 연결되지 않았습니다.');
+        prompt();
+        return;
+    }
     const cmd = input.trim();
     log.input(input);
     if (!cmd) {

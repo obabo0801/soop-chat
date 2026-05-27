@@ -49,7 +49,7 @@ export function append(level, ...args) {
         .join(' ');
 
     const data = 
-        `[${time.getTime()}] [${type}] ${arg}`;
+        `[${time.getTime()}] ${arg}`;
 
     return file.append(
         `logs/${time.getDate()}.log`, data);
@@ -63,7 +63,7 @@ export function send(level, ...args) {
         .join(' ');
 
     const data = 
-        `[${time.getTime()}] [${type}] ${arg}`;
+        `[${time.getTime()}] ${arg}`;
 
     const l = CONSOLE[type] ?? console.log;
     const c = COLORS[type] ?? COLORS.RESET;

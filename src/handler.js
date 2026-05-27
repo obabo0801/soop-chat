@@ -7,6 +7,8 @@ import {
     SUBTITLE
 } from '#soop/config';
 
+import * as log from '#utils/log';
+
 export function packet(soop, packet) {
 
     switch (packet.service) {
@@ -80,13 +82,11 @@ export function packet(soop, packet) {
 
     // 8
     case SVC.SET_DUMB: {
-        console.log('[SET_DUMB]', packet.fields);
-
         soop.emit('dumb', {
             userId: packet.fields[0],
             userFlag: packet.fields[1],
-            count: Number(packet.fields[2]),
-            index: Number(packet.fields[3]),
+            time: Number(packet.fields[2]),
+            count: Number(packet.fields[3]),
             streamerId: packet.fields[4],
             unknown1: Number(packet.fields[5]),
             unknown2: packet.fields[5],
@@ -152,6 +152,12 @@ export function packet(soop, packet) {
         break;
     }
 
+    // 18
+    case SVC.SEND_BALLOON: {
+//        console.log('[SEND_BALLOON]', packet.fields);
+        break;
+    }
+
     // 19
     case SVC.ICE_MODE: {
 //        console.log('[ICE_MODE]', packet.fields);
@@ -201,6 +207,12 @@ export function packet(soop, packet) {
         break;
     }
 
+    // 36
+    case SVC.BJ_STICKER_ITEM: {
+//        console.log('[BJ_STICKER_ITEM]', packet.fields);
+        break;
+    }
+
     // 50
     case SVC.NOTIFY_POLL: {
         const status = Number(packet.fields[0]);
@@ -226,6 +238,12 @@ export function packet(soop, packet) {
         break;
     }
 
+    // 58
+    case SVC.SEND_ADMIN_NOTICE: {
+        soop.emit('alarm', `관리자 공지 : ${packet.fields[0]}`);
+        break;
+    }
+
     // 76
     case SVC.KICK_AND_CANCEL: {
         const type = Number(packet.fields[0]);
@@ -237,7 +255,9 @@ export function packet(soop, packet) {
 
     // 77
     case SVC.KICK_USER_LIST: {
-        soop.emit('alarm', `강제 퇴장 유저 목록 (${packet.fields.join(', ')})`);
+        const list = parseKickUserListText(packet.fields.join(', '));
+        const text = formatKickUserList(list);
+        soop.emit('alarm', `강제 퇴장 유저 목록 (${list.length}명)\n${text}`);
         break;
     }
 
@@ -256,6 +276,12 @@ export function packet(soop, packet) {
         } else {
             soop.emit('alarm', `강제 퇴장 메시지 유저에게 보이기 OFF`);
         }
+        break;
+    }
+
+    // 93
+    case SVC.FOLLOW_ITEM_EFFECT: {
+        conolse.log('[FOLLOW_ITEM_EFFECT]', packet.fields);
         break;
     }
 
@@ -297,7 +323,7 @@ export function packet(soop, packet) {
 
     // 109
     case SVC.OGQ_EMOTICON: {
-        console.log('[OGQ_EMOTICON]', packet.fields);
+//        console.log('[OGQ_EMOTICON]', packet.fields);
         break;
     }
 
@@ -341,13 +367,13 @@ export function packet(soop, packet) {
 
     // 137
     case SVC.USER_LANG_SET: {
-        const lang = Number(packet.fields[1]);
-        soop.emit('alarm', `자막 언어 설정이 변경되었습니다. (${SUBTITLE_LANG[lang]})`);
+        const lang = Number(packet.fields[0]);
+        soop.emit('alarm', `자막 언어 설정이 변경되었습니다. (${SUBTITLE[lang].label})`);
         break;
     }
 
     default:
-        console.log('[PACKET]', packet);
+        log.debug('[PACKET]', packet);
         break;
     }
 }
@@ -499,4 +525,48 @@ export function subTier(flag = '0|0') {
     if (flagInfo.isTier1) return '티어 1';
 
     return '';
+}
+
+function parseKickUserListText(text = '') {
+    const fields = text
+        .split(',')
+        .map(v => v.trim())
+        .filter(Boolean);
+
+    const list = [];
+
+    for (let i = 0; i < fields.length; i += 6) {
+        const [
+            userId,
+            userName,
+            time,
+            managerId,
+            managerName,
+            managerFlag,
+        ] = fields.slice(i, i + 6);
+
+        if (!userId) continue;
+
+        list.push({
+            userId,
+            userName,
+            time,
+            managerId,
+            managerName,
+            managerFlag,
+        });
+    }
+
+    return list;
+}
+
+function formatKickUserList(list = []) {
+    return list
+        .map(item => {
+            return (
+                `${item.userId}, ${item.userName}, ${item.time}, ${item.managerId}`
+                + ` | ${item.managerName}, ${item.managerFlag}`
+            );
+        })
+        .join('\n');
 }

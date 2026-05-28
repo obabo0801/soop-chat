@@ -176,6 +176,44 @@ export function packet(soop, packet) {
         break;
     }
 
+    // 14
+    case SVC.SET_NICKNAME: {
+        const userId = packet.fields[0];
+        const newNickname = packet.fields[1];
+        const changeType = Number(packet.fields[2]);
+        const userFlag = packet.fields[3];
+        const oldNickname = packet.fields[4];
+
+        const data = {
+            userId,
+            oldNickname,
+            newNickname,
+            changeType,
+            userFlag,
+            ...checkFlag(userFlag),
+        };
+
+        // 유저 목록 갱신
+        const user = soop.userList.get(userId);
+
+        if (user) {
+            user.name = newNickname;
+            user.flag = userFlag;
+            soop.userList.set(userId, user);
+        } else {
+            soop.userList.set(userId, {
+                id: userId,
+                name: newNickname,
+                flag: userFlag,
+                ...splitFlag(userFlag),
+            });
+        }
+
+        soop.emit('nickname', data);
+
+        break;
+    }
+
     // 18
     case SVC.SEND_BALLOON: {
         const data = {
@@ -566,6 +604,12 @@ export function packet(soop, packet) {
         } else {
             soop.emit('battleMission', data);
         }
+        break;
+    }
+
+    // 125
+    case SVC.MISSION_SETTLE: {
+        console.log('[MISSION_SETTLE]', packet.fields);
         break;
     }
 

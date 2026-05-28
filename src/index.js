@@ -107,12 +107,32 @@ const client = new SoopClient({
 
     client.on('mission', (data) => {
         const mission = data.raw;
-
         log.info(
             data.isChallenge ? '[도전미션]' : '[대결미션]',
             mission.type,
             mission
         );
+
+        if (mission.type === 'CHALLENGE_GIFT') {
+            log.info(
+                data.isChallenge ? '[도전미션 후원]' : '[대결미션 후원]',
+                mission.title, `${mission.data}`
+            );
+        }
+
+        else if (mission.type === 'CHALLENGE_NOTICE') {
+            log.info(
+                data.isChallenge ? '[도전미션 알림]' : '[대결미션 알림]',
+                mission.title, `${mission.data}`
+            );
+        }
+
+        else if (mission.type === 'CHALLENGE_SETTLE') {
+            log.info(
+                data.isChallenge ? '[도전미션 정산]' : '[대결미션 정산]',
+                mission.title, `${mission.settle_count}개`
+            );
+        }
     });
 
     client.on('battleMission', (data) => {
@@ -121,6 +141,14 @@ const client = new SoopClient({
 
     client.on('challengeMission', (data) => {
         log.info('[도전미션]', data.type, data.title || data.message || '', data);
+    });
+
+    client.on('nickname', data => {
+        log.info(
+            '[닉네임 변경]',
+            `${data.oldNickname || data.userId} -> ${data.newNickname}`,
+            `(${data.userId})`
+        );
     });
 
     client.on('adconEffect', data => {
@@ -343,10 +371,6 @@ const client = new SoopClient({
         if (data.fanOrder > 0) {
             log.warn('[알림]', `${data.userName}(${data.userId})님이 ${data.fanOrder}번째 팬클럽이 되셨습니다.`);
         }
-    });
-
-    client.on('mission', (data) => {
-        log.warn('[미션]', data);
     });
 
     client.on('dumb', (data) => {

@@ -10,7 +10,6 @@
     "start": "node src/index.js"
   },
   "dependencies": {
-    "inst": "^2.0.0",
     "ws": "^8.21.0"
   },
   "imports": {

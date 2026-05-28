@@ -259,7 +259,8 @@ export async function getSection(
         userId, chip = '', options = {}
     ) {
     const url = new URL(
-        `/v1.1/channel/${encodeURIComponent(userId)}/${chip}`,
+        `/v1.1/channel/${encodeURIComponent(userId)}`
+        + `/home/section/${chip}`,
         DOMAIN.channel
     );
 
@@ -489,7 +490,7 @@ export async function logout(options = {}) {
 
     url.searchParams.set('szType', 'json');
 
-    const raw = await requestRaw(url, {
+    const raw = await request.raw(url, {
         ...options,
         method: 'GET'
     });

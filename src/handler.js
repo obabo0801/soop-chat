@@ -33,6 +33,12 @@ export function packet(soop, packet) {
         if (soop.cookie?.AuthTicket) {
             soop.sendUserFlag(soop.userFlag);
         }
+
+        soop.emit('join', {
+            chatNo: soop.channel?.CHATNO,
+            streamerId: soop.streamerId,
+            userFlag: soop.userFlag
+        });
         break;
     }
 
@@ -48,6 +54,7 @@ export function packet(soop, packet) {
         const users = userList(soop, packet.fields);
 
         if (users.length > 1) {
+            soop.emit('userList', users);
             break;
         }
 
@@ -72,7 +79,7 @@ export function packet(soop, packet) {
             userFlag: packet.fields[6],
             ...checkFlag(packet.fields[6])
         });
-        break;``
+        break;
     }
 
     // 7
@@ -441,11 +448,11 @@ export function packet(soop, packet) {
             senderLanguage: packet.fields[9] || 'ko_KR',
             urlModify: packet.fields[10] || '',
         };
-
+s
         soop.emit('subscriptionItemEffect', {
             ...data,
-            imageUrl: makeSubscriptionItemEffectUrl(data),
-            fallbackUrl: makeSubscriptionDefaultUrl(data.senderLanguage),
+            imageUrl: soop.makeStickerUrl(data.type),
+            fallbackUrl: soop.makeSubscriptionDefaultUrl(data.senderLanguage),
         });
         break;
     }
@@ -774,11 +781,15 @@ export function parseIceAuth(mask = 0) {
 }
 
 export function userRole(flag = '0|0') {
-    const flagInfo = checkFlag(flag);
-    if (flagInfo.isBJ) return '스트리머';
-    if (flagInfo.isManager) return '매니저';
-    if (flagInfo.isTopFan) return '열혈';
-    if (flagInfo.isFanClub) return '팬';
+    const f = checkFlag(flag);
+
+    if (f.isBJ) return '스트리머';
+    if (f.isManager) return '매니저';
+    if (f.isTopFan) return '열혈';
+    if (f.isTier1 || f.isTier2 || f.isTier3) return '구독';
+    if (f.isFanClub) return '팬';
+    if (f.isNightBot) return '나이트봇';
+    if (f.isAdmin || f.isAdminChat) return '운영자';
 
     return '일반';
 }

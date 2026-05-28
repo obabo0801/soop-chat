@@ -83,6 +83,8 @@ const client = new SoopClient({
     });
 
     client.on('chuser', (type, user) => {
+        if (!user) return;
+
         const role = handler.userRole(user.flag);
         const tier = handler.subTier(user.flag);
         const badge = tier

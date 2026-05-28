@@ -107,6 +107,11 @@ export class SoopClient {
             );
         }
 
+        if (result.data.RESULT !== 1) {
+            this.emit('error', result.data);
+            return false;
+        }
+
         if (result.cookie?.AuthTicket) {
             this.cookie = result.cookie;
         }
@@ -123,6 +128,11 @@ export class SoopClient {
         });
 
         if (!result) return false;
+
+        if (result.data.RESULT !== 1) {
+            this.emit('error', result.data);
+            return false;
+        }
 
         if (result.cookie?.AuthTicket) {
             this.cookie = result.cookie;
@@ -188,11 +198,17 @@ export class SoopClient {
             reject(new Error('timeout'));
         }, 10000);
 
+        const done = () => {
+            clearTimeout(timeout);
+            resolve(true);
+        };
+
+        this.once('join', done);
+
         this.socket.on('open', () => {
             this.sendLogin();
             this.startPing();
             this.emit('open');
-            resolve(true);
         });
 
         this.socket.on('message', data => {
@@ -365,7 +381,7 @@ export class SoopClient {
         }
 
         return this.send(
-            packet.setKick(userId, userName, this.userId, this.client.BNO, index, message)
+            packet.setKick(userId, userName, this.userId, this.channel?.BNO, index, message)
         );
     }
 
@@ -395,7 +411,7 @@ export class SoopClient {
             broadNo: this.channel?.BNO,
             userId: this.userId,
             auth: setType === 'ice_on'
-                ? this.makeIceAuthString({
+                ? this.makeIceAuthMask({
                 streamer,
                 fanClub,
                 supporter,
@@ -410,6 +426,26 @@ export class SoopClient {
         });
 
         return result;
+    }
+
+    makeIceAuthMask({
+        streamer = true,
+        fanClub = false,
+        supporter = false,
+        topFan = false,
+        subscriber = false,
+        manager = false,
+    } = {}) {
+        let mask = 0;
+
+        if (streamer) mask |= ICE_AUTH.STREAMER;
+        if (fanClub) mask |= ICE_AUTH.FAN_CLUB;
+        if (supporter) mask |= ICE_AUTH.SUPPORTER;
+        if (topFan) mask |= ICE_AUTH.TOP_FAN;
+        if (subscriber) mask |= ICE_AUTH.SUBSCRIBER;
+        if (manager) mask |= ICE_AUTH.MANAGER;
+
+        return mask;
     }
 
     makeIceAuthString({
@@ -432,8 +468,8 @@ export class SoopClient {
 
     async sendIceOption(count = 0, date = 0) {
         const result = await http.postIceOption({
-            giftCount: count,
-            subscriptionDate: date,
+            count,
+            date,
             options: {
                 cookie: this.cookie
             }
@@ -534,14 +570,14 @@ export class SoopClient {
         const count = Number(data.count) || 0;
 
         if (data.isDefault) {
-            const step = getDefaultBalloonStep(count);
+            const step = this.getDefaultBalloonStep(count);
             return `${DOMAIN.res}/new_player/items/ba_step${step}.png`;
         }
 
         let fileName = String(data.fileName || '');
 
         if (!fileName) {
-            return `${DOMAIN.res}/new_player/items/ba_step${getDefaultBalloonStep(count)}.png`;
+            return `${DOMAIN.res}/new_player/items/ba_step${this.getDefaultBalloonStep(count)}.png`;
         }
 
         const isEventBalloon = fileName.includes('evt');

@@ -1,6 +1,123 @@
 import { DOMAIN } from '#soop/config';
 import * as request from '#utils/request';
 
+export async function getEmoticons(options = {}) {
+    const url = new URL(
+        '/api/emoticons.php',
+        DOMAIN.st
+    );
+
+    const json = await request.json(url, {
+        ...options,
+        method: 'GET'
+    });
+
+    return json?.data;
+}
+
+export async function getRecentEmoticons(options = {}) {
+    const url = new URL(
+        '/api/recent_used_emoticon.php',
+        DOMAIN.live
+    );
+
+    const json = await request.json(url, {
+        ...options,
+        method: 'GET'
+    });
+
+    return json?.DATA;
+}
+
+export async function getSignatureEmoticons(userId, options = {}) {
+    const url = new URL(
+        '/api/signature_emoticon_api.php',
+        DOMAIN.live
+    );
+
+    const body = new URLSearchParams({
+        work: 'list',
+        v: 'tier',
+        szBjId: userId
+    });
+
+    const json = await request.json(url, {
+        ...options,
+        method: 'POST',
+        body
+    });
+
+    return json?.data;
+}
+
+export async function postOgqList(streamerId, options = {}) {
+    const url = new URL(
+        '/api/ogq.php',
+        DOMAIN.live
+    );
+
+    const body = new URLSearchParams({
+        ogq_type: 'STICKER',
+        bj_id: streamerId,
+        ogq_pay_type: 'A',
+        sort: 'PURCHASE',
+        work: 'ogq_list'
+    });
+
+    const json = await request.json(url, {
+        ...options,
+        method: 'POST',
+        body
+    });
+
+    return json;
+}
+
+export async function postOgqChat({
+        chatIp,
+        chatPort,
+        chatNo,
+        chatId,
+        message = '',
+        streamerId,
+        ogqId,
+        ogqNumbering = 0,
+        ogqGroupId = 0,
+        gemUse = 'N',
+        apiKey = '',
+        serviceLocation = 'live',
+        options = {},
+    }) {
+    const url = new URL(
+        `/api/ogq.php`,
+        DOMAIN.live
+    );
+
+    const body = new URLSearchParams({
+        chat_ip: chatIp,
+        chat_port: String(chatPort),
+        chat_no: String(chatNo),
+        chat_id: chatId,
+        chat_message: message,
+        bj_id: streamerId,
+        ogq_id: ogqId,
+        ogq_numbering: String(ogqNumbering),
+        ogq_group_id: String(ogqGroupId),
+        gem_use: gemUse,
+        api_key: apiKey,
+        service_location: serviceLocation,
+        work: 'chat_send',
+    });
+
+    const json = await request.json(url, {
+        ...options,
+        method: 'POST',
+        body
+    });
+
+    return json;
+}
+
 export async function getStation(
         userId, options = {}
     ) {
@@ -378,4 +495,20 @@ export async function logout(options = {}) {
     });
 
     return true;
+}
+
+export function normalize(domain) {
+    domain = String(domain || '').trim();
+
+    domain = domain.replaceAll('\\', '/');
+
+    if (domain.startsWith('//')) {
+        return `https:${domain}`;
+    }
+
+    if (!/^https?:\/\//i.test(domain)) {
+        return `https://${domain}`;
+    }
+
+    return domain;
 }

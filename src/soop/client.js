@@ -5,10 +5,12 @@ import * as log from '#utils/log';
 
 import {
     SVC,
+    DOMAIN,
     DELIMITER
 } from '#soop/config';
 
 import * as http from '#soop/http';
+import * as request from '#utils/request';
 import * as packet from '#soop/packet';
 
 export class SoopClient {
@@ -155,7 +157,7 @@ export class SoopClient {
         this.password = password;
 
         if (!this.channel) {
-            this.channel = await http.getLiveInfo(
+            this.channel = await http.postLiveInfo(
                 streamerId, {
                 cookie: this.cookie
             });
@@ -167,7 +169,7 @@ export class SoopClient {
         
         const headers = {
             ...(this.cookie ? {
-                Cookie: http.cookieString(this.cookie)
+                Cookie: request.cookieString(this.cookie)
             } : {})
         };
 
@@ -250,6 +252,29 @@ export class SoopClient {
         return this.send(
             packet.chat(message)
         );
+    }
+
+    async sendOgq(message = '', ogqId = '', ogqNo = 0) {
+        const result = await http.postOgqChat({
+            chatIp: this.channel?.CHIP,
+            chatPort: this.channel?.CHPT,
+            chatNo: this.channel?.CHATNO,
+            chatId: this.channel?.USERID,
+            message,
+            streamerId: this.channel?.BJID,
+            ogqId: ogqId,
+            ogqNumbering: ogqNo,
+            ogqGroupId: 0,
+            gemUse: 'N',
+            apiKey: md5(`${this.userId}`
+                + `${this.channel?.CHATNO}`
+            ),
+            serviceLocation: 'live',
+            options: {
+                cookie: this.cookie
+            }
+        });
+        return result;
     }
 
     sendManagerChat(message = '') {
@@ -459,6 +484,186 @@ export class SoopClient {
         this.ping = null;
     }
 
+    getDefaultBalloonStep(count = 0) {
+        count = Number(count) || 0;
+
+        if (count < 10) return 1;
+        if (count < 50) return 2;
+        if (count < 100) return 3;
+        if (count < 500) return 4;
+        if (count < 1000) return 5;
+
+        return 6;
+    }
+
+    makeSubscriptionItemEffectUrl({
+        month = 1,
+        senderLanguage = 'ko_KR',
+        urlModify = '',
+    } = {}) {
+
+        month = Number(month) || 1;
+
+        let url = `${DOMAIN.static}/subscription_ceremony/m/gudok_${month}.png`;
+
+        if (senderLanguage && senderLanguage !== 'ko_KR') {
+            url = url.replace('.png', '_en.png');
+        }
+
+        return urlModify
+            ? `${url}?v=${urlModify}`
+            : url;
+    }
+
+    makeSubscriptionDefaultUrl(senderLanguage = 'ko_KR') {
+        let url = `${DOMAIN.static}/subscription_ceremony/m/gudok_1.png`;
+
+        if (senderLanguage && senderLanguage !== 'ko_KR') {
+            url = url.replace('.png', '_en.png');
+        }
+
+        return url;
+    }
+
+    makeStickerUrl(type = 'sticker') {
+        return `${DOMAIN.res}/new_player/items/${type}.png`;
+    }
+
+    makeBalloonUrl(data = {}) {
+
+        const count = Number(data.count) || 0;
+
+        if (data.isDefault) {
+            const step = getDefaultBalloonStep(count);
+            return `${DOMAIN.res}/new_player/items/ba_step${step}.png`;
+        }
+
+        let fileName = String(data.fileName || '');
+
+        if (!fileName) {
+            return `${DOMAIN.res}/new_player/items/ba_step${getDefaultBalloonStep(count)}.png`;
+        }
+
+        const isEventBalloon = fileName.includes('evt');
+        const isSignatureBalloon = fileName.includes('sig') || fileName.includes('signature');
+
+        if (
+            data.senderLanguage &&
+            data.senderLanguage !== 'ko_KR' &&
+            !isEventBalloon &&
+            !isSignatureBalloon
+        ) {
+            fileName += '_en';
+        }
+
+        let url;
+
+        if (isEventBalloon || isSignatureBalloon) {
+            url = `${DOMAIN.static}/starballoon/story_m/${fileName}.png`;
+        } else {
+            url = `${DOMAIN.res}/new_player/items/m_balloon_${fileName}.png`;
+        }
+
+        if (data.urlModify) {
+            url += `?v=${data.urlModify}`;
+        }
+
+        return url;
+    }
+
+    normalizeTier(tier = 1) {
+        if (
+            tier === 2 ||
+            tier === '2' ||
+            tier === 'tier2' ||
+            tier === '티어2' ||
+            tier === '티어 2'
+        ) {
+            return 'tier2';
+        }
+
+        return 'tier1';
+    }
+
+    makeTierUrl(tier = 1, month = 0) {
+        const pcon = this.channel?.PCON_OBJECT;
+
+        if (!pcon || typeof pcon !== 'object') {
+            return '';
+        }
+
+        const tierKey = this.normalizeTier(tier);
+        const list = pcon[tierKey];
+
+        if (!Array.isArray(list)) {
+            return '';
+        }
+
+        const subMonth = Number(month) || 0;
+
+        const sorted = [...list].sort((a, b) => {
+            return Number(b.MONTH || 0) - Number(a.MONTH || 0);
+        });
+
+        for (const item of sorted) {
+            const itemMonth = Number(item.MONTH) || 0;
+            const filename = item.FILENAME || '';
+
+            if (subMonth >= itemMonth && filename) {
+                return filename;
+            }
+        }
+
+        return '';
+    }
+
+    makeEmoticon(data = {}) {
+        const map = new Map();
+
+        for (const type of ['default', 'subscribe']) {
+            const section = data[type];
+
+            if (!section) continue;
+
+            const smallUrl = section.small_url;
+            const bigUrl = section.big_url;
+
+            for (const group of section.groups || []) {
+                for (const emoticon of group.emoticons || []) {
+                    if (emoticon.isDeprecated) {
+                        continue;
+                    }
+
+                    map.set(emoticon.keyword, {
+                        type,
+                        group: group.title,
+                        keyword: emoticon.keyword,
+                        fileName: emoticon.fileName,
+                        staticFileName: emoticon.staticFileName || '',
+                        smallUrl: new URL(emoticon.fileName, smallUrl).href,
+                        bigUrl: new URL(emoticon.fileName, bigUrl).href,
+                    });
+                }
+            }
+        }
+
+        return map;
+    }
+
+    findEmoticonsInMessage(message = '', emoticonMap = new Map()) {
+        const result = [];
+
+        message = String(message || '');
+
+        for (const [keyword, emoticon] of emoticonMap) {
+            if (message.includes(keyword)) {
+                result.push(emoticon);
+            }
+        }
+
+        return result;
+    }
+
     disconnect() {
         if (!this.socket) {
             return false;
@@ -470,4 +675,56 @@ export class SoopClient {
 
         return true;
     }
+
+    makeOgqUrl(index = 0, subId = 1) {
+        const ogq = this.ogq;
+        const item = ogq?.data?.[index];
+
+        if (!ogq?.img_domain) {
+            return '';
+        }
+
+        if (!item) {
+            return '';
+        }
+
+        const ogqId = item.ogq_id;
+        const max = Number(item.ogq_numbering);
+        const extension = item.extension;
+
+        if (!ogqId || !max || !extension) {
+            return '';
+        }
+
+        if (subId < 1 || subId > max) {
+            return '';
+        }
+
+        const url = new URL(
+            `/sticker/${ogqId}/${subId}.${extension}`,
+            http.normalize(ogq.img_domain)
+        );
+
+        return url.href;
+    }
+
+    disconnect() {
+        if (!this.socket) {
+            return false;
+        }
+
+        this.stopPing();
+        this.socket.close();
+        this.socket = null;
+
+        return true;
+    }
+}
+
+export function md5(value) {
+    return (crypto
+        .createHash('md5')
+        .update(value)
+        .digest('hex')
+    );
 }

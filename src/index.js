@@ -25,6 +25,25 @@ const client = new SoopClient({
 
 (async () => {
 
+    // 기본 이모티콘
+    const basic = await http.getEmoticons({
+        cookie: client.cookie
+    })
+    client.basic = basic;
+    client.emoticonMap = client.makeEmoticon(client.basic);
+
+    // 시그널 이모티콘
+    const signature = await http.getSignatureEmoticons(streamerId, {
+        cookie: client.cookie
+    })
+    client.signature = signature;
+
+    // OGQ 이모티콘
+    const ogq = await http.postOgqList(streamerId, {
+        cookie: client.cookie
+    })
+    client.ogq = ogq;
+
     const info = await http.getPrivateInfo({
         cookie: client.cookie
     });
@@ -86,6 +105,38 @@ const client = new SoopClient({
         }
     });
 
+    client.on('mission', (data) => {
+        const mission = data.raw;
+
+        log.info(
+            data.isChallenge ? '[도전미션]' : '[대결미션]',
+            mission.type,
+            mission
+        );
+    });
+
+    client.on('battleMission', (data) => {
+        log.info('[대결미션]', data.type, data.title || data.message || '', data);
+    });
+
+    client.on('challengeMission', (data) => {
+        log.info('[도전미션]', data.type, data.title || data.message || '', data);
+    });
+
+    client.on('adconEffect', data => {
+        const type = data.fromVod
+            ? 'VOD 애드벌룬'
+            : '방송국 애드벌룬';
+
+        log.info(
+            `[${type}]`,
+            `${data.userName}(${data.userId})`,
+            `${data.adconCount}개`,
+            data.title,
+            data.imageUrl
+        );
+    });
+
     client.on('chat', (data) => {
         const role = handler.userRole(data.userFlag);
         const tier = handler.subTier(data.userFlag);
@@ -93,16 +144,60 @@ const client = new SoopClient({
             ? `${role}/${tier}`
             : role;
         
-        if (data.message?.includes(client.original)) {
-            log.warn('[필터]', `[${badge}]`, `${data.userName}(${data.userId}): ${data.message}`);
+        if (client.original && data.message?.includes(client.original)) {
+//            log.warn('[필터]', `[${badge}]`, `${data.userName}(${data.userId}): ${data.message}`);
+//            return;
+        }
+
+        if (role === '일반' || role === '팬') {
             return;
         }
 
-        if (role === '일반' || role === '팬클럽') {
-            return;
+        const emoticons = client.findEmoticonsInMessage(
+            data.message,
+            client.emoticonMap
+        );
+
+        for (const emoticon of emoticons) {
+            log.info(
+                '[이모티콘]',
+                `${emoticon.keyword}`,
+                emoticon.smallUrl
+            );
         }
 
+        if (tier > 0) {
+            const t = client.makeTierUrl(tier, data.subMonth);
+            log.load('[티어]', t);
+        }
         log.info('[채팅]', `[${badge}]`, `${data.userName}(${data.userId}): ${data.message}`);
+    });
+
+    client.on('sticker', data => {
+        log.info(
+            '[스티커]',
+            `${data.senderName}(${data.senderId})님이 스티커 ${data.count}개를 선물했습니다.`,
+            data.imageUrl
+        );
+
+        if (data.supporterOrder > 0) {
+            log.info(
+                '[서포터]',
+                `${data.senderName}님이 ${data.supporterOrder}번째 서포터가 되셨습니다.`
+            );
+        }
+    });
+
+    client.on('ogq', (data) => {
+        const role = handler.userRole(data.userFlag);
+        const tier = handler.subTier(data.userFlag);
+        const badge = tier
+            ? `${role}/${tier}`
+            : role;
+        const m = data.message ? `: ${data.message} ` : '';
+        log.info('[OGQ]', `[${badge}]`,
+            `${data.userName}(${data.userId})`, `${m}(${data.url})`
+        );
     });
 
     client.on('mchat', (data) => {
@@ -160,6 +255,26 @@ const client = new SoopClient({
         }
     });
 
+    client.on('adInBroad', (data) => {
+        console.log('[AD_IN_BROAD_JSON]', data);
+        if (data.ad_in_room === 1) {
+            log.warn('[알림]', '쉬는시간이 설정되었습니다.\n쉬는시간에도 채팅입력이 가능합니다.');
+        } else {
+            log.warn('[알림]', '쉬는시간이 종료되었습니다.');
+        }
+    });
+
+    client.on('subscriptionItemEffect', data => {
+        log.info(
+            '[연속 구독]',
+            `${data.sendNick}(${data.sendId})`,
+            `${data.month}개월째 구독중`,
+            `누적 ${data.accMonth}개월`,
+            `티어${data.tier}`,
+            data.imageUrl
+        );
+    });
+
     client.on('ice', (data) => {
         if (data.index === 0) {
             log.info('[알림] 채팅을 녹였습니다.');
@@ -202,7 +317,32 @@ const client = new SoopClient({
     });
 
     client.on('balloon', (data) => {
-        log.load('\x1b[96m[후원]\x1b[0m', `${data.userName}(${data.userId})님이 ${data.money}개 풍선 후원`);
+        log.info(
+            '[후원]',
+            `${data.userName}(${data.userId})님이 별풍선 ${data.count}개 선물`,
+            data.image
+        );
+
+        if (data.join > 0) {
+            log.warn('[알림]', `${data.userName}(${data.userId})님이 ${data.join}번째 팬클럽이 되셨습니다.`);
+        }
+    });
+
+    client.on('adcon', (data) => {
+        log.info(
+            '[애드벌룬]',
+            `${data.userName}(${data.userId})`,
+            data.message,
+            data.imageUrl
+        );
+
+        if (data.defaultImageUrl) {
+            log.info('[애드벌룬 효과]', data.defaultImageUrl);
+        }
+
+        if (data.fanOrder > 0) {
+            log.warn('[알림]', `${data.userName}(${data.userId})님이 ${data.fanOrder}번째 팬클럽이 되셨습니다.`);
+        }
     });
 
     client.on('mission', (data) => {
@@ -248,6 +388,23 @@ async function command(input) {
     const [raw, ...rest] = input.trim().split(/\s+/);
 
     switch (raw.toLowerCase()) {
+    
+    case '/이모지': {
+        const index = Number(rest[0]);
+        const subId = Number(rest[1]);
+        const reulst = client.makeOgqUrl(index, subId);
+        log.info(reulst);
+        break;
+        const message = rest.slice(0).join(' ');
+
+        const result = await client.sendOgq(
+            message,
+            '64d5a4369f427',
+            1
+        );
+        log.info(result);
+        break;
+    }
     
     case '/열혈': {
         const userId = rest[0];
@@ -415,8 +572,8 @@ async function command(input) {
 
     default:
         if (input.slice(0, 1) === '/') {
-            log.warn('존재하지 않는 명령어입니다.');
-            break;
+//            log.warn('존재하지 않는 명령어입니다.');
+//            break;
         }
 
         client.sendChat(input);

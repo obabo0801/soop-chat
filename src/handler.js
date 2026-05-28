@@ -4,7 +4,8 @@ import {
     USER_FLAG1,
     USER_FLAG2,
     ICE_AUTH,
-    SUBTITLE
+    SUBTITLE,
+    DOMAIN
 } from '#soop/config';
 
 import * as log from '#utils/log';
@@ -76,7 +77,7 @@ export function packet(soop, packet) {
 
     // 7
     case SVC.SET_BJ_STAT: {
-//        log.info('[SET_BJ_STAT]', packet.fields);
+        log.info('[SET_BJ_STAT]', packet.fields);
         break;
     }
 
@@ -177,19 +178,30 @@ export function packet(soop, packet) {
 
     // 18
     case SVC.SEND_BALLOON: {
-        soop.emit('balloon', {
+        const data = {
             streamerId: packet.fields[0],
             userId: packet.fields[1],
             userName: packet.fields[2],
-            money: Number(packet.fields[3]),
-            join: Number(packet.fields[4])
+            count: Number(packet.fields[3]),
+            join: Number(packet.fields[4]),
+            fileName: packet.fields[7] || '',
+            isDefault: Number(packet.fields[8]) === 1,
+            isTopFan: Number(packet.fields[9]) || 0,
+            senderLanguage: packet.fields[12] || 'ko_KR',
+            urlModify: packet.fields[13] || '',
+            relay: 0,
+        };
+
+        soop.emit('balloon', {
+            ...data,
+            image: soop.makeBalloonUrl(data)
         });
         break;
     }
 
     // 19
     case SVC.ICE_MODE: {
-//        log.info('[ICE_MODE]', packet.fields);
+        log.info('[ICE_MODE]', packet.fields);
         break;
     }
 
@@ -244,7 +256,20 @@ export function packet(soop, packet) {
 
     // 36
     case SVC.BJ_STICKER_ITEM: {
-//        log.info('[BJ_STICKER_ITEM]', packet.fields);
+        const data = {
+            bjId: packet.fields[0] || '',
+            senderId: packet.fields[1] || '',
+            senderName: packet.fields[2] || '',
+            count: Number(packet.fields[3]) || 0,
+            supporterOrder: Number(packet.fields[4]) || 0,
+            type: packet.fields[5] || 'sticker',
+            relay: Number(packet.fields[6]) || 0,
+        };
+
+        soop.emit('sticker', {
+            ...data,
+            imageUrl: makeStickerUrl(data.type),
+        });
         break;
     }
 
@@ -314,7 +339,32 @@ export function packet(soop, packet) {
 
     // 87
     case SVC.ADCON_EFFECT: {
-//        log.info('[ADCON_EFFECT]', packet.fields);
+        const data = {
+            chatNo: Number(packet.fields[0]) || 0,
+            bjId: packet.fields[1] || '',
+            userId: packet.fields[2] || '',
+            userName: packet.fields[3] || '',
+
+            message: packet.fields[4] || '',
+            message2: packet.fields[5] || '',
+            title: packet.fields[6] || '',
+
+            imageUrl: packet.fields[7] || '',
+            defaultImageUrl: packet.fields[8] || '',
+
+            adconCount: Number(packet.fields[9]) || 0,
+            fanOrder: Number(packet.fields[10]) || 0,
+            isTopFan: Number(packet.fields[11]) === 1,
+            isFanChief: Number(packet.fields[12]) === 1,
+            isSubRoom: Number(packet.fields[13]) === 1,
+
+            itemCode: packet.fields[14] || '',
+            uuid: packet.fields[15] || '',
+            senderLanguage: packet.fields[16] || '',
+            urlModify: packet.fields[17] || '',
+        };
+
+        soop.emit('adcon', data);
         break;
     }
 
@@ -338,7 +388,27 @@ export function packet(soop, packet) {
 
     // 93
     case SVC.FOLLOW_ITEM_EFFECT: {
-        log.info('[FOLLOW_ITEM_EFFECT]', packet.fields);
+        const data = {
+            bjId: packet.fields[0] || '',
+            sendId: packet.fields[1] || '',
+            sendNick: packet.fields[2] || '',
+
+            month: Number(packet.fields[3]) || 1,
+            chatNo: Number(packet.fields[4]) || 0,
+            type: Number(packet.fields[5]) || 0,
+            accMonth: Number(packet.fields[6]) || 0,
+            tier: Number(packet.fields[7]) || 1,
+
+            unknown: packet.fields[8] || '',
+            senderLanguage: packet.fields[9] || 'ko_KR',
+            urlModify: packet.fields[10] || '',
+        };
+
+        soop.emit('subscriptionItemEffect', {
+            ...data,
+            imageUrl: makeSubscriptionItemEffectUrl(data),
+            fallbackUrl: makeSubscriptionDefaultUrl(data.senderLanguage),
+        });
         break;
     }
 
@@ -384,15 +454,74 @@ export function packet(soop, packet) {
         break;
     }
 
+    // 107
+    case SVC.VOD_ADCON:
+    case SVC.STATION_ADCON: {
+        const isVod = packet.service === SVC.VOD_ADCON;
+
+        const data = {
+            bjId: packet.fields[0] || '',
+            userId: packet.fields[1] || '',
+            userName: packet.fields[2] || '',
+            adconCount: Number(packet.fields[3]) || 0,
+
+            imageUrl: packet.fields[4] || '',
+            title: packet.fields[5] || '',
+            chatNo: Number(packet.fields[6]) || 0,
+
+            senderLanguage: packet.fields[7] || '',
+            urlModify: packet.fields[8] || '',
+
+            fromVod: isVod,
+            fromChannel: !isVod,
+        };
+
+        soop.emit('adconEffect', data);
+        break;
+    }
+
     // 109
     case SVC.OGQ_EMOTICON: {
-//        log.info('[OGQ_EMOTICON]', packet.fields);
+        const userFlag = packet.fields[7];
+        const flag = checkFlag(userFlag);
+
+        const ext = Number(
+            packet.fields[17]
+        ) === 1 ? 'webp' : 'png';
+        
+        const ogqId = packet.fields[2];
+        const subId = packet.fields[3];
+
+        const url = new URL(
+            `/sticker/${ogqId}/${subId}.${ext}`,
+            DOMAIN.ogq
+        );
+
+        soop.emit('ogq', {
+            chatNo: Number(packet.fields[0]),
+            message: packet.fields[1],
+
+            ogqId,
+            subId,
+
+            userId: packet.fields[5],
+            userName: packet.fields[6],
+            userFlag,
+
+            subMonth: Number(packet.fields[12]),
+            accSubMonth: Number(packet.fields[15]),
+            ext,
+            url: url.href,
+
+            ...flag,
+        });
+
         break;
     }
 
     // 110
     case SVC.PUNGASI_START_JSON: {
-//        log.info('[PUNGASI_START_JSON]', packet.fields);
+        log.info('[PUNGASI_START_JSON]', packet.fields);
         break;
     }
 
@@ -407,7 +536,7 @@ export function packet(soop, packet) {
             break;
         }
 
-        log.info('[AD_IN_BROAD_JSON]', data);
+        soop.emit('adInBroad', data);
         break;
     }
 
@@ -422,7 +551,21 @@ export function packet(soop, packet) {
             break;
         }
 
-        soop.emit('mission', data);
+        const type = data?.type || '';
+
+        const isChallenge = type.startsWith('CHALLENGE_');
+
+        soop.emit('mission', {
+            type,
+            isChallenge,
+            raw: data,
+        });
+
+        if (isChallenge) {
+            soop.emit('challengeMission', data);
+        } else {
+            soop.emit('battleMission', data);
+        }
         break;
     }
 
@@ -590,19 +733,19 @@ export function userRole(flag = '0|0') {
     const flagInfo = checkFlag(flag);
     if (flagInfo.isBJ) return '스트리머';
     if (flagInfo.isManager) return '매니저';
-    if (flagInfo.isTopFan) return '최고 팬';
-    if (flagInfo.isFanClub) return '팬클럽';
+    if (flagInfo.isTopFan) return '열혈';
+    if (flagInfo.isFanClub) return '팬';
 
     return '일반';
 }
 
 export function subTier(flag = '0|0') {
     const flagInfo = checkFlag(flag);
-    if (flagInfo.isTier3) return '티어 3';
-    if (flagInfo.isTier2) return '티어 2';
-    if (flagInfo.isTier1) return '티어 1';
+    if (flagInfo.isTier3) return 3;
+    if (flagInfo.isTier2) return 2;
+    if (flagInfo.isTier1) return 1;
 
-    return '';
+    return 0;
 }
 
 function parseKickUserListText(text = '') {
@@ -647,4 +790,16 @@ function formatKickUserList(list = []) {
             );
         })
         .join('\n');
+}
+
+function parseColor(value = 0) {
+    const n = Number(value);
+
+    if (!n || Number.isNaN(n)) {
+        return '';
+    }
+
+    let hex = n.toString(16).padStart(6, '0').toUpperCase();
+
+    return `#${hex.slice(4, 6)}${hex.slice(2, 4)}${hex.slice(0, 2)}`;
 }

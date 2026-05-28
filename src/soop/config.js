@@ -181,7 +181,11 @@ export const DOMAIN = {
     chapi: 'https://chapi.sooplive.com',
     channel: 'https://api-channel.sooplive.com',
     event: 'https://afevent2.sooplive.com',
-    vod: 'https://vod.sooplive.com'
+    vod: 'https://vod.sooplive.com',
+    st: 'https://st.sooplive.com',
+    res: 'https://res.sooplive.com',
+    ogq: 'https://ogq-sticker-global-cdn-z01.sooplive.com',
+    static: 'https://static.file.sooplive.com'
 };
 
 export const CONTENT_TYPE = (

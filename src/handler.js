@@ -82,12 +82,17 @@ export function packet(soop, packet) {
 
     // 8
     case SVC.SET_DUMB: {
+        if (packet.fields.length < 2) {
+            soop.emit('error', packet.fields[0]);
+            break;
+        }
+
         soop.emit('dumb', {
             userId: packet.fields[0],
             userFlag: packet.fields[1],
             time: Number(packet.fields[2]),
             count: Number(packet.fields[3]),
-            streamerId: packet.fields[4],
+            managerId: packet.fields[4],
             unknown1: Number(packet.fields[5]),
             unknown2: packet.fields[5],
             userName: packet.fields[7],
@@ -122,13 +127,24 @@ export function packet(soop, packet) {
         if (packet.fields.length < 2) {
             soop.emit('error', packet.fields[0]);
         }
+        if (packet.fields.length > 4) {
+            const flag = checkFlag(packet.fields[0]);
+            const userId = packet.fields[1];
+            const userName = packet.fields[2];
 
-        soop.userFlag = packet.fields[0];
+            if (flag.isBlockt) {
+                soop.emit('alarm', `${userName}(${userId})님이 귓속말 수신 거부 하셨습니다.`);
+            } else {
+                soop.emit('alarm', `${userName}(${userId})님이 귓속말 수신 허용 하셨습니다.`);
+            }
+        } else {
+            soop.userFlag = packet.fields[0];
 
-        soop.emit('userFlag', {
-            userFlag: packet.fields[0],
-            ...checkFlag(packet.fields[0]),
-        });
+            soop.emit('userFlag', {
+                userFlag: packet.fields[0],
+                ...checkFlag(packet.fields[0]),
+            });
+        }
         break;
     }
 
@@ -179,12 +195,18 @@ export function packet(soop, packet) {
 
     // 21
     case SVC.ICE_MODE_EX: {
+        const count = Number(packet.fields[3]);
+        const date = Number(packet.fields[4]);
+
         soop.emit('ice', {
             index: Number(packet.fields[0]),
             choice: Number(packet.fields[1]),
             auth: parseIceAuth(packet.fields[2]),
-            money: Number(packet.fields[3])
+            count,
+            date
         });
+
+        soop.ice = { count, date };
         break;
     }
 
@@ -243,10 +265,17 @@ export function packet(soop, packet) {
         break;
     }
 
+    // 52
+    case SVC.BDM_ADD_BLACK_INFO: {
+        console.log('[블랙]', packet.fields);
+        break;
+    }
+
     // 54
     case SVC.BAN_WORD: {
         const original = packet.fields[0];
         const replacement = packet.fields[1].split(DELIMITER.ACK);
+        soop.original = original;
         soop.emit('alarm', `금칙어가 적용되었습니다. (${original} -> ${replacement})`);
         break;
     }
@@ -259,10 +288,19 @@ export function packet(soop, packet) {
 
     // 76
     case SVC.KICK_AND_CANCEL: {
-        const type = Number(packet.fields[0]);
+        console.log('[강퇴]', packet.fields);
+
+        const type = Number(packet.fields[4]);
+        if (type === 0) {
+            console.log('[강퇴]', packet.fields);
+        } else {
+            console.log('[강퇴 취소]', packet.fields);
+        }
+
+        const type2 = Number(packet.fields[0]);
         const userId = packet.fields[1];
         const userName = packet.fields[2];
-        soop.emit('alarm', `${userName}(${userId})님의 강제퇴장이 취소되었습니다.`, type);
+        soop.emit('alarm', `${userName}(${userId})님의 강제퇴장이 취소되었습니다.`, type2);
         break;
     }
 
@@ -317,6 +355,11 @@ export function packet(soop, packet) {
 
     // 95
     case SVC.TRANSLATION: {
+        if (packet.fields.length < 2) {
+            soop.emit('error', packet.fields[0]);
+            break;
+        }
+
         const idx = Number(packet.fields[0]);
         const mode = Number(packet.fields[1]);
         const message = packet.fields[2];
@@ -335,6 +378,7 @@ export function packet(soop, packet) {
 
         soop.emit('notice', {
             catNo: Number(packet.fields[0]),
+            state: Number(packet.fields[1]),
             message: packet.fields[3]
         });
         break;
@@ -349,6 +393,21 @@ export function packet(soop, packet) {
     // 110
     case SVC.PUNGASI_START_JSON: {
 //        log.info('[PUNGASI_START_JSON]', packet.fields);
+        break;
+    }
+
+    // 119
+    case SVC.AD_IN_BROAD_JSON: {
+        let data = null;
+
+        try {
+            data = JSON.parse(packet.fields[0]);
+        } catch (error) {
+            soop.emit('error', error);
+            break;
+        }
+
+        log.info('[AD_IN_BROAD_JSON]', data);
         break;
     }
 

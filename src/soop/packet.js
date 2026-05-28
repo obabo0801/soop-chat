@@ -231,6 +231,38 @@ export function makeSubtitle(value = 0) {
     return makePacket(SVC.USER_LANG_SET, fields);
 }
 
+export function setDumb(userId = '', message = '') {
+    const fields = [
+        userId,
+        message
+    ];
+
+    return makePacket(SVC.SET_DUMB, fields);
+}
+
+export function setKick(userId = '', userName = '', managerId = '', bno = 0, index = 0, message = '') {
+    const fields = [
+        userId,
+        userName,
+        managerId,
+        bno,
+        index,
+        message
+    ]; 
+
+    return makePacket(SVC.KICK_AND_CANCEL, fields);
+}
+
+export function addBlack(bno = 0, managerId = '', userId = '') {
+    const fields = [
+        bno,
+        managerId,
+        userId
+    ]; 
+
+    return makePacket(SVC.BDM_ADD_BLACK_INFO, fields);
+}
+
 export function parse(data) {
     const raw = Buffer.isBuffer(data)
         ? data.toString('utf8')

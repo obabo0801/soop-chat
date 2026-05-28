@@ -35,7 +35,7 @@ const client = new SoopClient({
         log.warn('[정보] 비로그인');
     }
 
-    const live = await http.getLiveInfo(streamerId, {
+    const live = await http.postLiveInfo(streamerId, {
         cookie: client.cookie
     })
     client.channel = live;
@@ -70,11 +70,16 @@ const client = new SoopClient({
             ? `${role}/${tier}`
             : role;
 
-        if (type > 0) {
+        if (type === 5) {
+            log.error('[강퇴', `[${badge}]`, `${user.name}(${user.id})님이 블라인드 상태에서 탈출을 시도하여 강제퇴장 되었습니다.`);
+            return;
+        }
+        else if (type > 0) {
 //            log.debug('[입장]', `[${badge}]`, `${user.name}(${user.id})`);
         } else {
             if (user?.kick === 1) {
-//                log.debug('[퇴장]', `[${badge}]`, `${user.name}(${user.id})`);
+                const r = user.count > 0 ? ` (누적 ${user.count}회)` : '';
+//                log.debug('[퇴장]', `[${badge}]`, `${user.name}(${user.id})${r}`);
                 return;
             }
             log.error('[퇴장]', `[${badge}]`, `${user.name}(${user.id})님이 강퇴되었습니다. (누적 ${user.count}회)`);
@@ -88,7 +93,7 @@ const client = new SoopClient({
             ? `${role}/${tier}`
             : role;
         
-        if (data.message?.includes('ㅊㄱㅇ')) {
+        if (data.message?.includes(client.original)) {
             log.warn('[필터]', `[${badge}]`, `${data.userName}(${data.userId}): ${data.message}`);
             return;
         }
@@ -119,7 +124,11 @@ const client = new SoopClient({
     });
 
     client.on('notice', (data) => {
-        log.info('[공지]', data.message);
+        if (data.state === 1) {
+            log.warn('[공지 켜짐]', data.message);
+        } else {
+            log.debug('[공지 꺼짐]', data.message);
+        }
     });
 
     client.on('poll', async (data, result) => {
@@ -166,13 +175,17 @@ const client = new SoopClient({
             }
 
             if (data.auth.isSubscriberAllowed) {
-                names.push('구독팬');
+                names.push(
+                    data.date > 0
+                        ? `구독팬(${data.date}개월↑)`
+                        : '구독팬'
+                );
             }
 
             if (data.auth.isFanClubAllowed) {
                 names.push(
-                    data.money > 0
-                        ? `팬클럽(${data.money}개↑)`
+                    data.count > 0
+                        ? `팬클럽(${data.count}개↑)`
                         : '팬클럽'
                 );
             }
@@ -189,7 +202,7 @@ const client = new SoopClient({
     });
 
     client.on('balloon', (data) => {
-        log.load('\x1b[96m[후원]\x1b[0m', `${data.userName}(${data.userId})님이 ${data.money}원 풍선 후원`);
+        log.load('\x1b[96m[후원]\x1b[0m', `${data.userName}(${data.userId})님이 ${data.money}개 풍선 후원`);
     });
 
     client.on('mission', (data) => {
@@ -197,7 +210,12 @@ const client = new SoopClient({
     });
 
     client.on('dumb', (data) => {
-        log.error('[채금]', `${data.userName}(${data.userId})님이 채팅금지 ${data.count}회가 되었습니다. (${data.time}초)`, `처리자 ${data.streamerId}`);
+        if (data.count > 2) {
+            log.error('[채금]', `${data.userName}(${data.userId})님이 채팅금지 횟수 초과로 블라인드 처리 되었습니다.\n ${data.count}초 동안 채팅과 방송화면을 볼 수 없습니다.`);
+            return;
+        }
+
+        log.error('[채금]', `${data.userName}(${data.userId})님이 채팅금지 ${data.count}회가 되었습니다. (${data.time}초)`, `처리자 ${data.managerId}`);
     });
 
     client.on('subtitle', (data) => {
@@ -231,9 +249,49 @@ async function command(input) {
 
     switch (raw.toLowerCase()) {
     
+    case '/열혈': {
+        const userId = rest[0];
+        const flag = Number(rest[1]);
+        const result = await http.postTopFan(
+            userId,
+            flag,
+            {
+                cookie: client.cookie
+            }
+        );
+        log.info(result);
+        break;
+    }
+    
+    case '/취소': {
+        const userId = rest[0];
+        const userName = rest[1];
+        const index = 1;
+        const message = rest.slice(2).join(' ');
+        await client.sendSetKick(userId, userName, index, message);
+        break;
+    }
+    
+    case '/강퇴': {
+        const userId = rest[0];
+        const userName = rest[1];
+        const index = 0;
+        const message = rest.slice(2).join(' ');
+        await client.sendSetKick(userId, userName, index, message);
+        break;
+    }
+    
+    case '/채금': {
+        const userId = rest[0];
+        const message = rest.slice(1).join(' ');
+        const result = await client.sendSetDumb(userId, message);
+        console.log(result);
+        break;
+    }
+    
     case '/자막': {
         const r = rest[0];
-        const result = await client.sendSubTitle(Number(r));
+        await client.sendSubTitle(Number(r));
         break;
     }
     
@@ -244,8 +302,10 @@ async function command(input) {
 
     case '/개수': {
         const r = rest[0];
+        const d = rest[1];
         const result = await client.sendIceOption(
-            Number(r) || 0
+            Number(r) || 0,
+            Number(d) || 0
         );
         log.info(result);
         break;
@@ -253,7 +313,6 @@ async function command(input) {
     }
     
     case '/얼음': {
-        const r = rest[0];
         const result = await client.sendIceMode({
             streamer: true,
             fanClub: true,
@@ -285,9 +344,10 @@ async function command(input) {
 
     case '/공지': {
         const catNo = Number(client.channel?.BNO) || 0;
-        const message = rest.join(' ');
+        const state = Number(rest[0]);
+        const message = rest.slice(1).join(' ');
 
-        let result = await http.setChatNotice(catNo, message, 1, {
+        let result = await http.postChatNotice(catNo, message, state, {
             cookie: client.cookie
         });
 
@@ -318,7 +378,7 @@ async function command(input) {
             log.info('[투표]', result);
             break;
         }
-        result = await http.setVote(userId, surveyNo, message, {
+        result = await http.postVote(userId, surveyNo, message, {
             cookie: client.cookie,
         });
         log.info('[투표]', result);

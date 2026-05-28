@@ -161,7 +161,7 @@ export class SoopClient {
             });
         }
         
-        const url = http.getChatUrl(this.channel);
+        const url = http.makeChatUrl(this.channel);
 
         if (!url) return false;
         
@@ -318,6 +318,45 @@ export class SoopClient {
         );
     }
 
+    sendSetDumb(userId = '', message = '') {
+        if (!userId && !message) {
+            return false;
+        }
+        if (!this.isOpen(this.socket)) {
+            return false;
+        }
+
+        return this.send(
+            packet.setDumb(userId, message)
+        );
+    }
+
+    sendSetKick(userId = '', userName = '', index = 0, message = '') {
+        if (!userId && !userName && !managerId && !bno && !index && !message) {
+            return false;
+        }
+        if (!this.isOpen(this.socket)) {
+            return false;
+        }
+
+        return this.send(
+            packet.setKick(userId, userName, this.userId, this.client.BNO, index, message)
+        );
+    }
+
+    sendAddBlack(userId = '', managerId = '') {
+        if (!userId && !managerId) {
+            return false;
+        }
+        if (!this.isOpen(this.socket)) {
+            return false;
+        }
+
+        return this.send(
+            packet.addBlack(this.channel.BNO, managerId, userId)
+        );
+    }
+
     async sendIceMode({
             streamer = true,
             fanClub = false,
@@ -327,11 +366,11 @@ export class SoopClient {
             manager = false,
             setType = 'ice_on'
         } = {}) {
-        const result = await http.updateIceMode({
+        const result = await http.postIceMode({
             broadNo: this.channel?.BNO,
-            chatUserId: this.userId,
-            iceAuth: setType === 'ice_on'
-                ? http.makeIceAuthString({
+            userId: this.userId,
+            auth: setType === 'ice_on'
+                ? this.makeIceAuthString({
                 streamer,
                 fanClub,
                 supporter,
@@ -339,7 +378,7 @@ export class SoopClient {
                 subscriber,
                 manager
             }) : 0,
-            setType: setType,
+            type: setType,
             options: {
                 cookie: this.cookie
             },
@@ -348,10 +387,28 @@ export class SoopClient {
         return result;
     }
 
-    async sendIceOption(count = 0) {
-        const result = await http.setIceOption({
+    makeIceAuthString({
+        streamer = true,
+        fanClub = false,
+        supporter = false,
+        topFan = false,
+        subscriber = false,
+        manager = false,
+    } = {}) {
+        return [
+            streamer ? '1' : '0',
+            fanClub ? '1' : '0',
+            supporter ? '1' : '0',
+            topFan ? '1' : '0',
+            subscriber ? '1' : '0',
+            manager ? '1' : '0',
+        ].join('');
+    }
+
+    async sendIceOption(count = 0, date = 0) {
+        const result = await http.postIceOption({
             giftCount: count,
-            subscriptionDate: 0,
+            subscriptionDate: date,
             options: {
                 cookie: this.cookie
             }

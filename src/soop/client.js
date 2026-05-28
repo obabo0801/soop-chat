@@ -225,6 +225,7 @@ export class SoopClient {
         });
 
         this.socket.on('close', (code, reason) => {
+            clearTimeout(timeout);
             this.stopPing();
 
             this.emit('close', {
@@ -374,7 +375,7 @@ export class SoopClient {
     }
 
     sendSetKick(userId = '', userName = '', index = 0, message = '') {
-        if (!userId && !userName) {
+        if (!userId || !userName) {
             return false;
         }
         if (!this.isOpen(this.socket)) {

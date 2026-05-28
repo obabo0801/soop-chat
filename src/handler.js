@@ -448,7 +448,7 @@ export function packet(soop, packet) {
             senderLanguage: packet.fields[9] || 'ko_KR',
             urlModify: packet.fields[10] || '',
         };
-s
+
         soop.emit('subscriptionItemEffect', {
             ...data,
             imageUrl: soop.makeSubscriptionItemEffectUrl(data),

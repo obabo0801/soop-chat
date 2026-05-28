@@ -107,42 +107,25 @@ const client = new SoopClient({
         }
     });
 
-    client.on('mission', (data) => {
-        const mission = data.raw;
+    client.on('mission', ({ raw: mission, isChallenge }) => {
+        const prefix = isChallenge ? '도전미션' : '대결미션';
+        const { type, title = '', message = '', data, settle_count } = mission;
+
+        const label = {
+            CHALLENGE_GIFT: '후원',
+            CHALLENGE_NOTICE: '알림',
+            CHALLENGE_SETTLE: '정산',
+        }[type];
+
+        log.info(`[${prefix}]`, type, title || message, mission);
+
+        if (!label) return;
+
         log.info(
-            data.isChallenge ? '[도전미션]' : '[대결미션]',
-            mission.type,
-            mission
+            `[${prefix} ${label}]`,
+            title,
+            type === 'CHALLENGE_SETTLE' ? `${settle_count}개` : data
         );
-
-        if (mission.type === 'CHALLENGE_GIFT') {
-            log.info(
-                data.isChallenge ? '[도전미션 후원]' : '[대결미션 후원]',
-                mission.title, `${mission.data}`
-            );
-        }
-
-        else if (mission.type === 'CHALLENGE_NOTICE') {
-            log.info(
-                data.isChallenge ? '[도전미션 알림]' : '[대결미션 알림]',
-                mission.title, `${mission.data}`
-            );
-        }
-
-        else if (mission.type === 'CHALLENGE_SETTLE') {
-            log.info(
-                data.isChallenge ? '[도전미션 정산]' : '[대결미션 정산]',
-                mission.title, `${mission.settle_count}개`
-            );
-        }
-    });
-
-    client.on('battleMission', (data) => {
-        log.info('[대결미션]', data.type, data.title || data.message || '', data);
-    });
-
-    client.on('challengeMission', (data) => {
-        log.info('[도전미션]', data.type, data.title || data.message || '', data);
     });
 
     client.on('nickname', data => {
@@ -514,14 +497,6 @@ async function command(input) {
             setType: 'ice_off'
         });
         log.info(result);
-        break;
-    }
-
-    case '/테스트': {
-        const result = await http.startVote('테스트 투표', {
-            cookie: client.cookie
-        });
-        log.info('[테스트]', result);
         break;
     }
 

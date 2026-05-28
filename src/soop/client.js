@@ -6,7 +6,8 @@ import * as log from '#utils/log';
 import {
     SVC,
     DOMAIN,
-    DELIMITER
+    DELIMITER,
+    ICE_AUTH
 } from '#soop/config';
 
 import * as http from '#soop/http';
@@ -373,7 +374,7 @@ export class SoopClient {
     }
 
     sendSetKick(userId = '', userName = '', index = 0, message = '') {
-        if (!userId && !userName && !managerId && !bno && !index && !message) {
+        if (!userId && !userName) {
             return false;
         }
         if (!this.isOpen(this.socket)) {
@@ -698,18 +699,6 @@ export class SoopClient {
         }
 
         return result;
-    }
-
-    disconnect() {
-        if (!this.socket) {
-            return false;
-        }
-
-        this.stopPing();
-        this.socket.close();
-        this.socket = null;
-
-        return true;
     }
 
     makeOgqUrl(index = 0, subId = 1) {

@@ -313,7 +313,7 @@ export function packet(soop, packet) {
 
         soop.emit('sticker', {
             ...data,
-            imageUrl: makeStickerUrl(data.type),
+            imageUrl: soop.makeStickerUrl(data.type),
         });
         break;
     }
@@ -451,7 +451,7 @@ export function packet(soop, packet) {
 s
         soop.emit('subscriptionItemEffect', {
             ...data,
-            imageUrl: soop.makeStickerUrl(data.type),
+            imageUrl: soop.makeSubscriptionItemEffectUrl(data),
             fallbackUrl: soop.makeSubscriptionDefaultUrl(data.senderLanguage),
         });
         break;

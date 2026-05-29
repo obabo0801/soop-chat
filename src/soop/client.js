@@ -92,13 +92,12 @@ export class SoopClient {
         );
     }
 
-    async login(
-            userId, password, secondPassword = ''
-        ) {
-        const result = await http.login(
-            userId, password, {
-            cookie: this.cookie
-        });
+    async login(userId, password, secondPassword = '') {
+        const result = (
+            await http.login(
+            userId, password,
+            { cookie: this.cookie }
+        ));
 
         if (!result) return false;
 
@@ -120,13 +119,12 @@ export class SoopClient {
         return result;
     }
 
-    async secondLogin(
-            userId, secondPassword
-        ) {
-        const result = await http.secondLogin(
-            userId, secondPassword, {
-            cookie: this.cookie
-        });
+    async secondLogin(userId, secondPassword) {
+        const result = (
+            await http.secondLogin(
+            userId, secondPassword,
+            { cookie: this.cookie }
+        ));
 
         if (!result) return false;
 
@@ -143,9 +141,9 @@ export class SoopClient {
     }
 
     async logout() {
-        await http.logout({
-            cookie: this.cookie
-        });
+        await http.logout(
+            { cookie: this.cookie }
+        );
 
         this.cookie = '';
         this.channel = null;
@@ -155,30 +153,31 @@ export class SoopClient {
         return true;
     }
 
-    async connect(
-            streamerId = '', password = ''
-        ) {
+    async connect(streamerId = '', password = '') {
         if (!streamerId) {
             streamerId = this.streamerId;
         }
+        this.streamerId = streamerId;
+
         if (!password) {
             password = this.password;
         }
-        this.streamerId = streamerId;
         this.password = password;
 
         if (!this.channel) {
-            this.channel = await http.postLiveInfo(
-                streamerId, {
-                cookie: this.cookie
-            });
+            this.channel = (
+                await http.postLiveInfo(
+                streamerId,
+                { cookie: this.cookie }
+            ));
         }
-        
-        const url = this.makeChatUrl(this.channel);
-
-        if (!url) return false;
 
         await this.loadAssets();
+        
+        const url = this.makeChatUrl(
+            this.channel
+        );
+        if (!url) return false;
         
         const headers = {
             ...(this.cookie ? {
@@ -196,26 +195,30 @@ export class SoopClient {
     }
 
     async loadAssets() {
-        const emo = await http.getEmoticon({
-            cookie: this.cookie
-        })
-        this.emoticon = emo;
+        const emoticon = (
+            await http.getEmoticon(
+            { cookie: this.cookie }
+        ));
+        this.emoticon = emoticon;
 
-        const rec = await http.getRecent({
-            cookie: this.cookie
-        })
-        this.recent = rec;
+        const recent = (
+            await http.getRecent(
+            { cookie: this.cookie }
+        ));
+        this.recent = recent;
 
-        const sig = await http.getSignature(
-            this.streamerId, {
-            cookie: this.cookie
-        })
-        this.signature = sig;
+        const signature = (
+            await http.getSignature(
+            this.streamerId,
+            { cookie: this.cookie }
+        ));
+        this.signature = signature;
 
-        const ogq = await http.postOgqList(
-            this.streamerId, {
-            cookie: this.cookie
-        })
+        const ogq = (
+            await http.postOgqList(
+            this.streamerId,
+            { cookie: this.cookie }
+        ));
         this.ogq = ogq;
 
         return true;
@@ -361,7 +364,9 @@ export class SoopClient {
     }
 
     sendKick(targetId = '', index = 0, message = '') {
-        const name = this.userList.get(targetId);
+        const user = this.userList.get(targetId);
+        const name = user?.name || '';
+
         return this.send(packet.makeKick(
             targetId, name, this.userId,
             this.channel.BNO, index, message
@@ -381,15 +386,14 @@ export class SoopClient {
     }
 
     async sendIceMode(type, auth = 0) {
-        const result = await http.postIceMode(
+        const result = (
+            await http.postIceMode(
             this.channel.BNO,
             this.userId,
             type,
             auth,
-            {
-                cookie: this.cookie
-            }
-        );
+            { cookie: this.cookie }
+        ));
 
         return result;
     }
@@ -437,16 +441,15 @@ export class SoopClient {
     }
 
     async sendOgq(message = '', ogqId = '', index = 1) {
-        const result = await http.postOgqChat(
+        const result = (
+            await http.postOgqChat(
             this.channel,
             this.userId,
             message,
             ogqId,
             index,
-            {
-                cookie: this.cookie
-            }
-        );
+            { cookie: this.cookie }
+        ));
 
         return result;
     }
@@ -458,133 +461,108 @@ export class SoopClient {
         ));
     }
 
-    getDefaultBalloonStep(count = 0) {
-        count = Number(count) || 0;
-
-        if (count < 10) return 1;
-        if (count < 50) return 2;
-        if (count < 100) return 3;
-        if (count < 500) return 4;
-        if (count < 1000) return 5;
-
-        return 6;
-    }
-
     makeBalloonUrl(data = {}) {
-
         const count = Number(data.count) || 0;
 
+        const step = (
+            count < 10 ? 1 :
+            count < 50 ? 2 :
+            count < 100 ? 3 :
+            count < 500 ? 4 :
+            count < 1000 ? 5 : 6
+        );
+
+        const defaultUrl = new URL(
+            `/new_player/items/ba_step${step}.png`,
+            DOMAIN.res
+        );
+
         if (data.isDefault) {
-            const step = this.getDefaultBalloonStep(count);
-            return `${DOMAIN.res}/new_player/items/ba_step${step}.png`;
+            return defaultUrl.href;
         }
 
         let fileName = String(data.fileName || '');
 
         if (!fileName) {
-            return `${DOMAIN.res}/new_player/items/ba_step${this.getDefaultBalloonStep(count)}.png`;
+            return defaultUrl.href;
         }
 
-        const isEventBalloon = fileName.includes('evt');
-        const isSignatureBalloon = fileName.includes('sig') || fileName.includes('signature');
+        const isSpecial = (
+            fileName.includes('evt') ||
+            fileName.includes('sig') ||
+            fileName.includes('signature')
+        );
 
         if (
             data.senderLanguage &&
             data.senderLanguage !== 'ko_KR' &&
-            !isEventBalloon &&
-            !isSignatureBalloon
+            !isSpecial
         ) {
             fileName += '_en';
         }
 
-        let url;
-
-        if (isEventBalloon || isSignatureBalloon) {
-            url = `${DOMAIN.static}/starballoon/story_m/${fileName}.png`;
-        } else {
-            url = `${DOMAIN.res}/new_player/items/m_balloon_${fileName}.png`;
-        }
+        let url = isSpecial
+            ? new URL(
+                `/starballoon/story_m/${fileName}.png`,
+                DOMAIN.static
+            )
+            : new URL(
+                `/new_player/items/m_balloon_${fileName}.png`,
+                DOMAIN.res
+            );
 
         if (data.urlModify) {
-            url += `?v=${data.urlModify}`;
+            url.href += `?v=${data.urlModify}`;
         }
 
-        return url;
+        return url.href;
     }
 
     makeStickerUrl(type = 'sticker') {
         return `${DOMAIN.res}/new_player/items/${type}.png`;
     }
 
-    makeSubscriptionItemEffectUrl({
-        month = 1,
-        senderLanguage = 'ko_KR',
-        urlModify = '',
-    } = {}) {
+    makeSubscriptionUrl(month = 1, urlModify = '') {
+        let url = new URL(
+            `/subscription_ceremony/m/gudok_${month}.png`,
+            DOMAIN.static
+        );
 
-        month = Number(month) || 1;
-
-        let url = `${DOMAIN.static}/subscription_ceremony/m/gudok_${month}.png`;
-
-        if (senderLanguage && senderLanguage !== 'ko_KR') {
-            url = url.replace('.png', '_en.png');
-        }
-
-        return urlModify
+        return (urlModify
             ? `${url}?v=${urlModify}`
-            : url;
-    }
-
-    makeSubscriptionDefaultUrl(senderLanguage = 'ko_KR') {
-        let url = `${DOMAIN.static}/subscription_ceremony/m/gudok_1.png`;
-
-        if (senderLanguage && senderLanguage !== 'ko_KR') {
-            url = url.replace('.png', '_en.png');
-        }
-
-        return url;
-    }
-
-    normalizeTier(tier = 1) {
-        if (
-            tier === 2 ||
-            tier === '2' ||
-            tier === 'tier2' ||
-            tier === '티어2' ||
-            tier === '티어 2'
-        ) {
-            return 'tier2';
-        }
-
-        return 'tier1';
+            : url.href
+        );
     }
 
     makeTierUrl(tier = 1, month = 0) {
-        const pcon = this.channel.PCON_OBJECT;
+        const pcon = this.channel?.PCON_OBJECT;
 
         if (!pcon || typeof pcon !== 'object') {
             return '';
         }
 
-        const tierKey = this.normalizeTier(tier);
-        const list = pcon[tierKey];
+        if (tier === 2) {
+            tier = 'tier2';
+        } else {
+            tier = 'tier1';
+        }
+
+        const list = pcon[tier];
 
         if (!Array.isArray(list)) {
             return '';
         }
 
-        const subMonth = Number(month) || 0;
-
         const sorted = [...list].sort((a, b) => {
-            return Number(b.MONTH || 0) - Number(a.MONTH || 0);
+            return Number(b.MONTH) - Number(a.MONTH);
         });
 
         for (const item of sorted) {
-            const itemMonth = Number(item.MONTH) || 0;
-            const filename = item.FILENAME || '';
+            const itemMonth = Number(item.MONTH);
+            const fileName = item.FILENAME;
 
-            if (subMonth >= itemMonth && filename) {
-                return filename;
+            if (month >= itemMonth && fileName) {
+                return fileName;
             }
         }
 
@@ -595,11 +573,7 @@ export class SoopClient {
         const ogq = this.ogq;
         const item = ogq.data?.[index];
 
-        if (!ogq?.img_domain) {
-            return '';
-        }
-
-        if (!item) {
+        if (!ogq?.img_domain || !item) {
             return '';
         }
 
@@ -615,12 +589,10 @@ export class SoopClient {
             return '';
         }
 
-        const url = new URL(
+        return new URL(
             `/sticker/${ogqId}/${subId}.${extension}`,
             http.normalize(ogq.img_domain)
-        );
-
-        return url.href;
+        ).href;
     }
 
     makeEmoticon(data = {}) {
@@ -634,8 +606,8 @@ export class SoopClient {
             const smallUrl = section.small_url;
             const bigUrl = section.big_url;
 
-            for (const group of section.groups || []) {
-                for (const emoticon of group.emoticons || []) {
+            for (const group of section.groups) {
+                for (const emoticon of group.emoticons) {
                     if (emoticon.isDeprecated) {
                         continue;
                     }
@@ -645,9 +617,15 @@ export class SoopClient {
                         group: group.title,
                         keyword: emoticon.keyword,
                         fileName: emoticon.fileName,
-                        staticFileName: emoticon.staticFileName || '',
-                        smallUrl: new URL(emoticon.fileName, smallUrl).href,
-                        bigUrl: new URL(emoticon.fileName, bigUrl).href,
+                        staticFileName: emoticon.staticFileName,
+                        smallUrl: new URL(
+                            emoticon.fileName,
+                            smallUrl
+                        ).href,
+                        bigUrl: new URL(
+                            emoticon.fileName,
+                            bigUrl
+                        ).href,
                     });
                 }
             }
@@ -656,12 +634,11 @@ export class SoopClient {
         return map;
     }
 
-    findEmoticons(message = '', emoticonMap = new Map()) {
+    findEmoticons(message = '') {
         const result = [];
-
         message = String(message || '');
 
-        for (const [keyword, emoticon] of emoticonMap) {
+        for (const [keyword, emoticon] of this.emoticon) {
             if (message.includes(keyword)) {
                 result.push(emoticon);
             }

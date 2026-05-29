@@ -1,3 +1,31 @@
+export const DOMAIN = {
+    login: 'https://login.sooplive.com',
+    member: 'https://member.sooplive.com',
+    event: 'https://afevent2.sooplive.com',
+
+    live: 'https://live.sooplive.com',
+    chapi: 'https://chapi.sooplive.com',
+    channel: 'https://api-channel.sooplive.com',
+
+    vod: 'https://vod.sooplive.com',
+
+    st: 'https://st.sooplive.com',
+    res: 'https://res.sooplive.com',
+    static: 'https://static.file.sooplive.com',
+
+    ogq: ('https://ogq-sticker-global'
+        + '-cdn-z01.sooplive.com'),
+};
+
+export const DELIMITER = {
+    ESC: '\x1b',
+    TAB: '\x09',
+    FF: '\x0c',
+    DC1: '\x11',
+    DC2: '\x12',
+    ACK: '\x06'
+};
+
 export const SVC = {
     KEEPALIVE: 0,
     LOGIN: 1,
@@ -164,43 +192,6 @@ export const ICE_AUTH = {
     SUBSCRIBER: 256,
     MANAGER: 512,
 };
-
-export const DELIMITER = {
-    ESC: '\x1b',
-    TAB: '\x09',
-    FF: '\x0c',
-    DC1: '\x11',
-    DC2: '\x12',
-    ACK: '\x06'
-};
-
-export const DOMAIN = {
-    login: 'https://login.sooplive.com',
-    live: 'https://live.sooplive.com',
-    member: 'https://member.sooplive.com',
-    chapi: 'https://chapi.sooplive.com',
-    channel: 'https://api-channel.sooplive.com',
-    event: 'https://afevent2.sooplive.com',
-    vod: 'https://vod.sooplive.com',
-    st: 'https://st.sooplive.com',
-    res: 'https://res.sooplive.com',
-    ogq: 'https://ogq-sticker-global-cdn-z01.sooplive.com',
-    static: 'https://static.file.sooplive.com'
-};
-
-export const CONTENT_TYPE = (
-    'application/x-www-form-urlencoded'
-);
-
-export const ACCEPT_LANGUAGE = (
-    'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7'
-)
-
-export const USER_AGENT = (
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-    + 'AppleWebKit/537.36 (KHTML, like Gecko) '
-    + 'Chrome/148.0.0.0 Safari/537.36'
-);
 
 export const SUBTITLE = {
     [-1]: { label: 'OFF', code: 'off' },

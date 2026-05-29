@@ -84,7 +84,7 @@ export function packet(soop, packet) {
 
     // 7
     case SVC.SET_BJ_STAT: {
-        log.info('[SET_BJ_STAT]', packet.fields);
+//        log.info('[SET_BJ_STAT]', packet.fields);
         break;
     }
 
@@ -566,7 +566,7 @@ export function packet(soop, packet) {
 
     // 110
     case SVC.PUNGASI_START_JSON: {
-        log.info('[PUNGASI_START_JSON]', packet.fields);
+//        log.info('[PUNGASI_START_JSON]', packet.fields);
         break;
     }
 

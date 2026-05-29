@@ -11,7 +11,6 @@ import {
 } from '#soop/config';
 
 import * as http from '#soop/http';
-import * as request from '#utils/request';
 import * as packet from '#soop/packet';
 
 export class SoopClient {
@@ -180,7 +179,7 @@ export class SoopClient {
         
         const headers = {
             ...(this.cookie ? {
-                Cookie: request.cookieString(this.cookie)
+                Cookie: http.cookieString(this.cookie)
             } : {})
         };
 
@@ -262,6 +261,32 @@ export class SoopClient {
         );
     }
 
+    sendPing() {
+        if (!this.isOpen(this.socket)) {
+            return false;
+        }
+
+        this.send(packet.keepAlive());
+        return true;
+    }
+
+    startPing() {
+        this.stopPing();
+
+        this.ping = setInterval(() => {
+            this.sendPing();
+        }, 60000);
+    }
+
+    stopPing() {
+        if (!this.ping) {
+            return false;
+        }
+        
+        clearInterval(this.ping);
+        this.ping = null;
+    }
+
     sendChat(message = '') {
         if (!message && !this.isOpen(this.socket)) {
             return false;
@@ -272,29 +297,6 @@ export class SoopClient {
         );
     }
 
-    async sendOgq(message = '', ogqId = '', ogqNo = 0) {
-        const result = await http.postOgqChat({
-            chatIp: this.channel?.CHIP,
-            chatPort: this.channel?.CHPT,
-            chatNo: this.channel?.CHATNO,
-            chatId: this.channel?.USERID,
-            message,
-            streamerId: this.channel?.BJID,
-            ogqId: ogqId,
-            ogqNumbering: ogqNo,
-            ogqGroupId: 0,
-            gemUse: 'N',
-            apiKey: md5(`${this.userId}`
-                + `${this.channel?.CHATNO}`
-            ),
-            serviceLocation: 'live',
-            options: {
-                cookie: this.cookie
-            }
-        });
-        return result;
-    }
-
     sendManagerChat(message = '') {
         if (!message && !this.isOpen(this.socket)) {
             return false;
@@ -302,16 +304,6 @@ export class SoopClient {
 
         return this.send(
             packet.managerChat(message)
-        );
-    }
-
-    sendKickUserList(bano = 0) {
-        if (bano === 0 && !this.isOpen(this.socket)) {
-            return false;
-        }
-
-        return this.send(
-            packet.kickUserList(bano)
         );
     }
 
@@ -328,16 +320,13 @@ export class SoopClient {
         );
     }
 
-    sendslowMode(count = 0) {
-        if (!count && !this.isOpen(this.socket)) {
+    sendTranslation(message = '') {
+        if (!message && !this.isOpen(this.socket)) {
             return false;
         }
 
         return this.send(
-            packet.slowMode(
-                this.channel.CHATNO,
-                count
-            )
+            packet.translation(message)
         );
     }
 
@@ -348,16 +337,6 @@ export class SoopClient {
 
         return this.send(
             packet.setUserFlag(flag)
-        );
-    }
-
-    sendTranslation(message = '') {
-        if (!message && !this.isOpen(this.socket)) {
-            return false;
-        }
-
-        return this.send(
-            packet.translation(message)
         );
     }
 
@@ -400,6 +379,16 @@ export class SoopClient {
         );
     }
 
+    sendKickUserList(bano = 0) {
+        if (bano === 0 && !this.isOpen(this.socket)) {
+            return false;
+        }
+
+        return this.send(
+            packet.kickUserList(bano)
+        );
+    }
+
     async sendIceMode({
             streamer = true,
             fanClub = false,
@@ -425,6 +414,18 @@ export class SoopClient {
             options: {
                 cookie: this.cookie
             },
+        });
+
+        return result;
+    }
+
+    async sendIceOption(count = 0, date = 0) {
+        const result = await http.postIceOption({
+            count,
+            date,
+            options: {
+                cookie: this.cookie
+            }
         });
 
         return result;
@@ -468,18 +469,6 @@ export class SoopClient {
         ].join('');
     }
 
-    async sendIceOption(count = 0, date = 0) {
-        const result = await http.postIceOption({
-            count,
-            date,
-            options: {
-                cookie: this.cookie
-            }
-        });
-
-        return result;
-    }
-
     sendSubTitle(value = 0) {
         if (!value && !this.isOpen(this.socket)) {
             return false;
@@ -496,30 +485,40 @@ export class SoopClient {
         );
     }
 
-    sendPing() {
-        if (!this.isOpen(this.socket)) {
+    async sendOgq(message = '', ogqId = '', ogqNo = 0) {
+        const result = await http.postOgqChat({
+            chatIp: this.channel?.CHIP,
+            chatPort: this.channel?.CHPT,
+            chatNo: this.channel?.CHATNO,
+            chatId: this.channel?.USERID,
+            message,
+            streamerId: this.channel?.BJID,
+            ogqId: ogqId,
+            ogqNumbering: ogqNo,
+            ogqGroupId: 0,
+            gemUse: 'N',
+            apiKey: md5(`${this.userId}`
+                + `${this.channel?.CHATNO}`
+            ),
+            serviceLocation: 'live',
+            options: {
+                cookie: this.cookie
+            }
+        });
+        return result;
+    }
+
+    sendslowMode(count = 0) {
+        if (!count && !this.isOpen(this.socket)) {
             return false;
         }
 
-        this.send(packet.keepAlive());
-        return true;
-    }
-
-    startPing() {
-        this.stopPing();
-
-        this.ping = setInterval(() => {
-            this.sendPing();
-        }, 60000);
-    }
-
-    stopPing() {
-        if (!this.ping) {
-            return false;
-        }
-        
-        clearInterval(this.ping);
-        this.ping = null;
+        return this.send(
+            packet.slowMode(
+                this.channel.CHATNO,
+                count
+            )
+        );
     }
 
     getDefaultBalloonStep(count = 0) {
@@ -532,39 +531,6 @@ export class SoopClient {
         if (count < 1000) return 5;
 
         return 6;
-    }
-
-    makeSubscriptionItemEffectUrl({
-        month = 1,
-        senderLanguage = 'ko_KR',
-        urlModify = '',
-    } = {}) {
-
-        month = Number(month) || 1;
-
-        let url = `${DOMAIN.static}/subscription_ceremony/m/gudok_${month}.png`;
-
-        if (senderLanguage && senderLanguage !== 'ko_KR') {
-            url = url.replace('.png', '_en.png');
-        }
-
-        return urlModify
-            ? `${url}?v=${urlModify}`
-            : url;
-    }
-
-    makeSubscriptionDefaultUrl(senderLanguage = 'ko_KR') {
-        let url = `${DOMAIN.static}/subscription_ceremony/m/gudok_1.png`;
-
-        if (senderLanguage && senderLanguage !== 'ko_KR') {
-            url = url.replace('.png', '_en.png');
-        }
-
-        return url;
-    }
-
-    makeStickerUrl(type = 'sticker') {
-        return `${DOMAIN.res}/new_player/items/${type}.png`;
     }
 
     makeBalloonUrl(data = {}) {
@@ -604,6 +570,39 @@ export class SoopClient {
 
         if (data.urlModify) {
             url += `?v=${data.urlModify}`;
+        }
+
+        return url;
+    }
+
+    makeStickerUrl(type = 'sticker') {
+        return `${DOMAIN.res}/new_player/items/${type}.png`;
+    }
+
+    makeSubscriptionItemEffectUrl({
+        month = 1,
+        senderLanguage = 'ko_KR',
+        urlModify = '',
+    } = {}) {
+
+        month = Number(month) || 1;
+
+        let url = `${DOMAIN.static}/subscription_ceremony/m/gudok_${month}.png`;
+
+        if (senderLanguage && senderLanguage !== 'ko_KR') {
+            url = url.replace('.png', '_en.png');
+        }
+
+        return urlModify
+            ? `${url}?v=${urlModify}`
+            : url;
+    }
+
+    makeSubscriptionDefaultUrl(senderLanguage = 'ko_KR') {
+        let url = `${DOMAIN.static}/subscription_ceremony/m/gudok_1.png`;
+
+        if (senderLanguage && senderLanguage !== 'ko_KR') {
+            url = url.replace('.png', '_en.png');
         }
 
         return url;
@@ -655,6 +654,38 @@ export class SoopClient {
         return '';
     }
 
+    makeOgqUrl(index = 0, subId = 1) {
+        const ogq = this.ogq;
+        const item = ogq?.data?.[index];
+
+        if (!ogq?.img_domain) {
+            return '';
+        }
+
+        if (!item) {
+            return '';
+        }
+
+        const ogqId = item.ogq_id;
+        const max = Number(item.ogq_numbering);
+        const extension = item.extension;
+
+        if (!ogqId || !max || !extension) {
+            return '';
+        }
+
+        if (subId < 1 || subId > max) {
+            return '';
+        }
+
+        const url = new URL(
+            `/sticker/${ogqId}/${subId}.${extension}`,
+            http.normalize(ogq.img_domain)
+        );
+
+        return url.href;
+    }
+
     makeEmoticon(data = {}) {
         const map = new Map();
 
@@ -700,38 +731,6 @@ export class SoopClient {
         }
 
         return result;
-    }
-
-    makeOgqUrl(index = 0, subId = 1) {
-        const ogq = this.ogq;
-        const item = ogq?.data?.[index];
-
-        if (!ogq?.img_domain) {
-            return '';
-        }
-
-        if (!item) {
-            return '';
-        }
-
-        const ogqId = item.ogq_id;
-        const max = Number(item.ogq_numbering);
-        const extension = item.extension;
-
-        if (!ogqId || !max || !extension) {
-            return '';
-        }
-
-        if (subId < 1 || subId > max) {
-            return '';
-        }
-
-        const url = new URL(
-            `/sticker/${ogqId}/${subId}.${extension}`,
-            http.normalize(ogq.img_domain)
-        );
-
-        return url.href;
     }
 
     disconnect() {

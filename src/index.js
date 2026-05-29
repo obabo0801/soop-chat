@@ -148,8 +148,7 @@ const client = new SoopClient({
 //        }
 
         const emoticons = client.findEmoticons(
-            data.message,
-            client.emoticonMap
+            data.message
         );
 
         for (const emoticon of emoticons) {
@@ -314,7 +313,7 @@ const client = new SoopClient({
         log.info(
             '[후원]',
             `${data.userName}(${data.userId})님이 별풍선 ${data.count}개 선물`,
-            data.image
+            data.imageUrl
         );
 
         if (data.join > 0) {

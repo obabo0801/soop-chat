@@ -194,50 +194,6 @@ export class SoopClient {
         return true;
     }
 
-    async loadAssets() {
-        const emoticon = (
-            await http.getEmoticon(
-            { cookie: this.cookie }
-        ));
-        this.emoticon = emoticon;
-
-        const recent = (
-            await http.getRecent(
-            { cookie: this.cookie }
-        ));
-        this.recent = recent;
-
-        const signature = (
-            await http.getSignature(
-            this.streamerId,
-            { cookie: this.cookie }
-        ));
-        this.signature = signature;
-
-        const ogq = (
-            await http.postOgqList(
-            this.streamerId,
-            { cookie: this.cookie }
-        ));
-        this.ogq = ogq;
-
-        return true;
-    }
-
-    makeChatUrl(channel = {}) {
-        const { CHDOMAIN, CHPT, BJID } = channel;
-
-        if (!CHDOMAIN || !CHPT) return false;
-
-        const port = `:${Number(CHPT) + 1}`;
-        const domain = `${CHDOMAIN}${port}`;
-
-        return (domain.startsWith('ws')
-            ? `${domain}/Websocket/${BJID}`
-            : `wss://${domain}/Websocket/${BJID}`
-        );
-    }
-
     async openSocket() {
         return new Promise((resolve, reject) => {
 
@@ -282,6 +238,65 @@ export class SoopClient {
         });
 
         });
+    }
+
+    disconnect() {
+        if (!this.socket) {
+            return false;
+        }
+
+        this.stopPing();
+        this.socket.close();
+        this.socket = null;
+
+        return true;
+    }
+
+    async loadAssets() {
+        const emoticon = (
+            await http.getEmoticon(
+            { cookie: this.cookie }
+        ));
+        this.emoticon = (
+            this.makeEmoticon(
+            emoticon
+        ));
+
+        const recent = (
+            await http.getRecent(
+            { cookie: this.cookie }
+        ));
+        this.recent = recent;
+
+        const signature = (
+            await http.getSignature(
+            this.streamerId,
+            { cookie: this.cookie }
+        ));
+        this.signature = signature;
+
+        const ogq = (
+            await http.postOgqList(
+            this.streamerId,
+            { cookie: this.cookie }
+        ));
+        this.ogq = ogq;
+
+        return true;
+    }
+
+    makeChatUrl(channel = {}) {
+        const { CHDOMAIN, CHPT, BJID } = channel;
+
+        if (!CHDOMAIN || !CHPT) return false;
+
+        const port = `:${Number(CHPT) + 1}`;
+        const domain = `${CHDOMAIN}${port}`;
+
+        return (domain.startsWith('ws')
+            ? `${domain}/Websocket/${BJID}`
+            : `wss://${domain}/Websocket/${BJID}`
+        );
     }
 
     send(data) {
@@ -385,6 +400,13 @@ export class SoopClient {
         ));
     }
 
+    sendSlowMode(count = 0) {
+        return this.send(packet.makeSlowMode(
+            this.channel.CHATNO,
+            count
+        ));
+    }
+
     async sendIceMode(type, auth = 0) {
         const result = (
             await http.postIceMode(
@@ -440,7 +462,7 @@ export class SoopClient {
         return this.send(packet.makeUserList());
     }
 
-    async sendOgq(message = '', ogqId = '', index = 1) {
+    async sendOgq(message, ogqId, index = 1) {
         const result = (
             await http.postOgqChat(
             this.channel,
@@ -452,13 +474,6 @@ export class SoopClient {
         ));
 
         return result;
-    }
-
-    sendSlowMode(count = 0) {
-        return this.send(packet.makeSlowMode(
-            this.channel.CHATNO,
-            count
-        ));
     }
 
     makeBalloonUrl(data = {}) {
@@ -518,18 +533,21 @@ export class SoopClient {
         return url.href;
     }
 
-    makeStickerUrl(type = 'sticker') {
-        return `${DOMAIN.res}/new_player/items/${type}.png`;
+    makeStickerUrl(type) {
+        return new URL(
+            `/new_player/items/${type}.png`,
+            DOMAIN.res
+        ).href;
     }
 
-    makeSubscriptionUrl(month = 1, urlModify = '') {
+    makeGudokUrl(month = 1, modify = '') {
         let url = new URL(
             `/subscription_ceremony/m/gudok_${month}.png`,
             DOMAIN.static
         );
 
-        return (urlModify
-            ? `${url}?v=${urlModify}`
+        return (modify
+            ? `${url}?v=${modify}`
             : url.href
         );
     }
@@ -599,44 +617,44 @@ export class SoopClient {
         const map = new Map();
 
         for (const type of ['default', 'subscribe']) {
-            const section = data[type];
+            
+        const section = data[type];
 
-            if (!section) continue;
+        if (!section) continue;
 
-            const smallUrl = section.small_url;
-            const bigUrl = section.big_url;
+        for (const group of section.groups) {
+        for (const emoticon of group.emoticons) {
 
-            for (const group of section.groups) {
-                for (const emoticon of group.emoticons) {
-                    if (emoticon.isDeprecated) {
-                        continue;
-                    }
-
-                    map.set(emoticon.keyword, {
-                        type,
-                        group: group.title,
-                        keyword: emoticon.keyword,
-                        fileName: emoticon.fileName,
-                        staticFileName: emoticon.staticFileName,
-                        smallUrl: new URL(
-                            emoticon.fileName,
-                            smallUrl
-                        ).href,
-                        bigUrl: new URL(
-                            emoticon.fileName,
-                            bigUrl
-                        ).href,
-                    });
-                }
-            }
+        if (emoticon.isDeprecated) {
+            continue;
         }
+
+        map.set(emoticon.keyword, {
+            type,
+            group: group.title,
+            keyword: emoticon.keyword,
+            fileName: emoticon.fileName,
+            smallUrl: new URL(
+                emoticon.fileName,
+                section.small_url
+            ).href,
+            bigUrl: new URL(
+                emoticon.fileName,
+                section.big_url
+            ).href,
+        });
+
+        }}}
 
         return map;
     }
 
     findEmoticons(message = '') {
         const result = [];
-        message = String(message || '');
+
+        if (!message || !(this.emoticon instanceof Map)) {
+            return result;
+        }
 
         for (const [keyword, emoticon] of this.emoticon) {
             if (message.includes(keyword)) {
@@ -645,17 +663,5 @@ export class SoopClient {
         }
 
         return result;
-    }
-
-    disconnect() {
-        if (!this.socket) {
-            return false;
-        }
-
-        this.stopPing();
-        this.socket.close();
-        this.socket = null;
-
-        return true;
     }
 }

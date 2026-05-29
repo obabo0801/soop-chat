@@ -239,7 +239,7 @@ export function dispatch(soop, packet) {
 
         soop.emit('balloon', {
             ...data,
-            image: soop.makeBalloonUrl(data)
+            imageUrl: soop.makeBalloonUrl(data)
         });
         break;
     }

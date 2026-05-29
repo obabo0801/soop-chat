@@ -4,39 +4,6 @@ import {
     SUBTITLE
 } from '#soop/config';
 
-function toBuffer(value = '') {
-    if (Buffer.isBuffer(value)) {
-        return value;
-    }
-
-    if (value instanceof Uint8Array) {
-        return Buffer.from(value);
-    }
-
-    return Buffer.from(String(value), 'utf8');
-}
-
-function toBody(fields = []) {
-    const chunks = [];
-
-    for (const field of fields) {
-        chunks.push(toBuffer(DELIMITER.FF));
-        chunks.push(toBuffer(field));
-    }
-
-    chunks.push(toBuffer(DELIMITER.FF));
-
-    return Buffer.concat(chunks);
-}
-
-export function makeSvcCode(value) {
-    return String(value).padStart(4, '0');
-}
-
-export function makeBodySize(body) {
-    return String(body.length).padStart(6, '0')
-}
-
 export function makePacket(service, fields = []) {
     const body = toBody(fields);
 
@@ -54,7 +21,7 @@ export function makePacket(service, fields = []) {
     ]);
 }
 
-export function makePayload(data = {}) {
+export function makePayload(data) {
     const dc1 = DELIMITER.DC1;
     const dc2 = DELIMITER.DC2;
 
@@ -72,9 +39,7 @@ export function makePayload(data = {}) {
     );
 }
 
-export function makePlayLog(
-        channel = {}, uuid = ''
-    ) {
+export function makePlayLog(channel, uuid) {
     const ack = DELIMITER.ACK;
 
     return [
@@ -110,7 +75,7 @@ export function makePlayLog(
     ].join('');
 }
 
-export function makeChat(message = '') {
+export function makeChat(message) {
     const fields = [
         message,
         0
@@ -119,7 +84,7 @@ export function makeChat(message = '') {
     return makePacket(SVC.CHAT, fields);
 }
 
-export function makeManagerChat(message = '') {
+export function makeManagerChat(message) {
     const fields = [
         message
     ];
@@ -127,7 +92,7 @@ export function makeManagerChat(message = '') {
     return makePacket(SVC.MANAGER_CHAT, fields);
 }
 
-export function makeDirectChat(message = '', targetId = '') {
+export function makeDirectChat(message, targetId) {
     const fields = [
         message,
         targetId
@@ -136,7 +101,7 @@ export function makeDirectChat(message = '', targetId = '') {
     return makePacket(SVC.DIRECT_CHAT, fields);
 }
 
-export function makeSlowMode(chatNo = 0, count = 0) {
+export function makeSlowMode(chatNo, count = 0) {
     const fields = [
         chatNo,
         count
@@ -145,7 +110,7 @@ export function makeSlowMode(chatNo = 0, count = 0) {
     return makePacket(SVC.SLOW_MODE, fields);
 }
 
-export function makeKickList(broadNo = 0) {
+export function makeKickList(broadNo) {
     const fields = [
         broadNo
     ];
@@ -153,7 +118,7 @@ export function makeKickList(broadNo = 0) {
     return makePacket(SVC.KICK_USER_LIST, fields);
 }
 
-export function makeLogin(ticket = '') {
+export function makeLogin(ticket) {
     const fields = [
         ticket,
         '',
@@ -163,9 +128,7 @@ export function makeLogin(ticket = '') {
     return makePacket(SVC.LOGIN, fields);
 }
 
-export function makeJoinChannel(
-        channel, password = '', uuid = ''
-    ) {
+export function makeJoinChannel(channel, password, uuid) {
     const mode = makePayload({
         log: makePlayLog(channel, uuid),
         pwd: password,
@@ -186,16 +149,16 @@ export function makeJoinChannel(
     return makePacket(SVC.JOIN_CHANNEL, fields);
 }
 
-export function makeUserFlag(synAck = '') {
+export function makeUserFlag(flag) {
     const fields = [
-        synAck,
+        flag,
         0
     ];
 
     return makePacket(SVC.SET_USER_FLAG, fields);
 }
 
-export function makeTranslation(message = '') {
+export function makeTranslation(message) {
     const fields = [
         1,
         1,
@@ -214,21 +177,21 @@ export function makeUserList() {
     return makePacket(SVC.CHUSER);
 }
 
-export function makeSubtitle(value = 0) {
-    if (!SUBTITLE[value]) {
+export function makeSubtitle(index = 0) {
+    if (!SUBTITLE[index]) {
         return null;
     }
 
     const fields = [
-        value,
+        index,
     ];
 
     return makePacket(SVC.USER_LANG_SET, fields);
 }
 
-export function makeDumb(userId = '', message = '') {
+export function makeDumb(targetId, message) {
     const fields = [
-        userId,
+        targetId,
         message
     ];
 
@@ -236,13 +199,12 @@ export function makeDumb(userId = '', message = '') {
 }
 
 export function makeKick(
-        userId = '', userName = '', managerId = '',
-        broadNo = 0, index = 0, message = ''
-    ) {
+    targetId, targetName, adminId, broadNo, index = 0, message = ''
+) {
     const fields = [
-        userId,
-        userName,
-        managerId,
+        targetId,
+        targetName,
+        adminId,
         broadNo,
         index,
         message
@@ -251,16 +213,58 @@ export function makeKick(
     return makePacket(SVC.KICK_AND_CANCEL, fields);
 }
 
-export function makeBlack(
-        broadNo = 0, managerId = '', userId = ''
-    ) {
+export function makeBlack(broadNo, adminId, targetId) {
     const fields = [
         broadNo,
-        managerId,
-        userId
+        adminId,
+        targetId
     ]; 
 
     return makePacket(SVC.BDM_ADD_BLACK_INFO, fields);
+}
+
+export function makeSvcCode(value) {
+    return String(value).padStart(4, '0');
+}
+
+export function makeBodySize(body) {
+    return String(body.length).padStart(6, '0')
+}
+
+function toBuffer(data) {
+    if (Buffer.isBuffer(data)) {
+        return data;
+    }
+
+    if (data instanceof Uint8Array) {
+        return Buffer.from(data);
+    }
+
+    return Buffer.from(String(data), 'utf8');
+}
+
+function toBody(fields = []) {
+    const chunks = [];
+
+    for (const field of fields) {
+        chunks.push(toBuffer(DELIMITER.FF));
+        chunks.push(toBuffer(field));
+    }
+
+    chunks.push(toBuffer(DELIMITER.FF));
+
+    return Buffer.concat(chunks);
+}
+
+export function toVisible(data) {
+    return (String(data)
+        .replaceAll(DELIMITER.ESC, '<ESC>')
+        .replaceAll(DELIMITER.TAB, '<TAB>')
+        .replaceAll(DELIMITER.FF, '<FF>')
+        .replaceAll(DELIMITER.DC1, '<DC1>')
+        .replaceAll(DELIMITER.DC2, '<DC2>')
+        .replaceAll(DELIMITER.ACK, '<ACK>')
+    );
 }
 
 export function parse(data) {
@@ -297,15 +301,4 @@ export function parse(data) {
         .slice(1, -1);
 
     return { service, length, flag, fields, raw };
-}
-
-export function visible(data) {
-    return (String(data)
-        .replaceAll(DELIMITER.ESC, '<ESC>')
-        .replaceAll(DELIMITER.TAB, '<TAB>')
-        .replaceAll(DELIMITER.FF, '<FF>')
-        .replaceAll(DELIMITER.DC1, '<DC1>')
-        .replaceAll(DELIMITER.DC2, '<DC2>')
-        .replaceAll(DELIMITER.ACK, '<ACK>')
-    );
 }

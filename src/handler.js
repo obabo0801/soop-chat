@@ -10,7 +10,7 @@ import {
 
 import * as log from '#utils/log';
 
-export function packet(soop, packet) {
+export function dispatch(soop, packet) {
 
     switch (packet.service) {
 

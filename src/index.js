@@ -25,25 +25,6 @@ const client = new SoopClient({
 
 (async () => {
 
-    // 기본 이모티콘
-    const basic = await http.getEmoticons({
-        cookie: client.cookie
-    })
-    client.basic = basic;
-    client.emoticonMap = client.makeEmoticon(client.basic);
-
-    // 시그널 이모티콘
-    const signature = await http.getSignatureEmoticons(streamerId, {
-        cookie: client.cookie
-    })
-    client.signature = signature;
-
-    // OGQ 이모티콘
-    const ogq = await http.postOgqList(streamerId, {
-        cookie: client.cookie
-    })
-    client.ogq = ogq;
-
     const info = await http.getPrivateInfo({
         cookie: client.cookie
     });
@@ -162,9 +143,9 @@ const client = new SoopClient({
 //            return;
         }
 
-        if (role === '일반' || role === '팬') {
-            return;
-        }
+//        if (role === '일반' || role === '팬') {
+//            return;
+//        }
 
         const emoticons = client.findEmoticons(
             data.message,
@@ -462,7 +443,7 @@ async function command(input) {
     }
     
     case '/인원': {
-        await client.sendKickList(client.channel?.BNO);
+        await client.sendKickList();
         break;
     }
 

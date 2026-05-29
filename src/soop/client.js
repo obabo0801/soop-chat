@@ -1,7 +1,10 @@
 import { WebSocket } from 'ws';
 import crypto from 'crypto';
+
+import * as http from '#soop/http';
+import * as packet from '#soop/packet';
+
 import * as handler from '#handler';
-import * as log from '#utils/log';
 
 import {
     DOMAIN,
@@ -9,9 +12,6 @@ import {
     SVC,
     ICE_AUTH
 } from '#soop/config';
-
-import * as http from '#soop/http';
-import * as packet from '#soop/packet';
 
 export class SoopClient {
     constructor(options = {}) {
@@ -33,6 +33,11 @@ export class SoopClient {
         this.events = new Map();
 
         this.ping = null;
+
+        this.emoticon = null;
+        this.recent = null;
+        this.signature = null;
+        this.ogq = null;
     }
 
     on(event, handler) {
@@ -45,7 +50,7 @@ export class SoopClient {
     }
 
     off(event, handler) {
-        const handlers = this.events.get(event) || []
+        const handlers = this.events.get(event) || [];
 
         this.events.set(
             event,
@@ -66,14 +71,10 @@ export class SoopClient {
     }
 
     emit(event, ...args) {
-        const handlers = this.events.get(event) || []
+        const handlers = this.events.get(event) || [];
 
         for (const handler of handlers) {
-            try {
-                handler(...args);
-            } catch (error) {
-                log.error(error.message);
-            }
+            handler(...args);
         }
     }
     
@@ -173,9 +174,11 @@ export class SoopClient {
             });
         }
         
-        const url = http.makeChatUrl(this.channel);
+        const url = this.makeChatUrl(this.channel);
 
         if (!url) return false;
+
+        await this.loadAssets();
         
         const headers = {
             ...(this.cookie ? {
@@ -192,8 +195,49 @@ export class SoopClient {
         return true;
     }
 
+    async loadAssets() {
+        const emo = await http.getEmoticon({
+            cookie: this.cookie
+        })
+        this.emoticon = emo;
+
+        const rec = await http.getRecent({
+            cookie: this.cookie
+        })
+        this.recent = rec;
+
+        const sig = await http.getSignature(
+            this.streamerId, {
+            cookie: this.cookie
+        })
+        this.signature = sig;
+
+        const ogq = await http.postOgqList(
+            this.streamerId, {
+            cookie: this.cookie
+        })
+        this.ogq = ogq;
+
+        return true;
+    }
+
+    makeChatUrl(channel = {}) {
+        const { CHDOMAIN, CHPT, BJID } = channel;
+
+        if (!CHDOMAIN || !CHPT) return false;
+
+        const port = `:${Number(CHPT) + 1}`;
+        const domain = `${CHDOMAIN}${port}`;
+
+        return (domain.startsWith('ws')
+            ? `${domain}/Websocket/${BJID}`
+            : `wss://${domain}/Websocket/${BJID}`
+        );
+    }
+
     async openSocket() {
         return new Promise((resolve, reject) => {
+
         const timeout = setTimeout(() => {
             reject(new Error('timeout'));
         }, 10000);
@@ -212,7 +256,7 @@ export class SoopClient {
         });
 
         this.socket.on('message', data => {
-            handler.packet(
+            handler.dispatch(
                 this, 
                 packet.parse(data)
             );
@@ -247,19 +291,16 @@ export class SoopClient {
     }
 
     sendLogin() {
-        return this.send(
-            packet.makeLogin(this.channel?.TK || '')
-        );
+        return this.send(packet.makeLogin(
+            this.channel?.TK || ''
+        ));
     }
 
     sendJoinChannel(password = '') {
-        return this.send(
-            packet.makeJoinChannel(
-                this.channel,
-                password,
-                this.cookie?._au || this.uuid
-            )
-        );
+        return this.send(packet.makeJoinChannel(
+            this.channel, password,
+            this.cookie?._au || this.uuid || ''
+        ));
     }
 
     sendPing() {
@@ -284,133 +325,71 @@ export class SoopClient {
     }
 
     sendChat(message = '') {
-        if (!message) {
-            return false;
-        }
-
         return this.send(
             packet.makeChat(message)
         );
     }
 
     sendManagerChat(message = '') {
-        if (!message) {
-            return false;
-        }
-
-        return this.send(
-            packet.makeManagerChat(message)
-        );
+        return this.send(packet.makeManagerChat(
+            message
+        ));
     }
 
     sendDirectChat(message = '', targetId = '') {
-        if (!message && !targetId) {
-            return false;
-        }
-
-        return this.send(
-            packet.makeDirectChat(message, targetId)
-        );
+        return this.send(packet.makeDirectChat(
+            message, targetId
+        ));
     }
 
     sendTranslation(message = '') {
-        if (!message) {
-            return false;
-        }
-
-        return this.send(
-            packet.makeTranslation(message)
-        );
+        return this.send(packet.makeTranslation(
+            message
+        ));
     }
 
     sendUserFlag(flag = '') {
-        if (!flag) {
-            return false;
-        }
-
-        return this.send(
-            packet.makeUserFlag(flag)
-        );
+        return this.send(packet.makeUserFlag(
+            flag
+        ));
     }
 
-    sendDumb(userId = '', message = '') {
-        if (!userId && !message) {
-            return false;
-        }
-
-        return this.send(
-            packet.makeDumb(userId, message)
-        );
+    sendDumb(targetId = '', message = '') {
+        return this.send(packet.makeDumb(
+            targetId, message
+        ));
     }
 
-    sendKick(userId = '', userName = '', index = 0, message = '') {
-        if (!userId || !userName) {
-            return false;
-        }
-
-        return this.send(
-            packet.makeKick(userId, userName, this.userId, this.channel?.BNO, index, message)
-        );
+    sendKick(targetId = '', index = 0, message = '') {
+        const name = this.userList.get(targetId);
+        return this.send(packet.makeKick(
+            targetId, name, this.userId,
+            this.channel.BNO, index, message
+        ));
     }
 
-    sendBlack(userId = '', managerId = '') {
-        if (!userId && !managerId) {
-            return false;
-        }
-
-        return this.send(
-            packet.makeBlack(this.channel?.BNO, managerId, userId)
-        );
+    sendBlack(targetId = '', adminId = '') {
+        return this.send(packet.makeBlack(
+            this.channel.BNO, adminId, targetId
+        ));
     }
 
-    sendKickList(broadNo = 0) {
-        if (broadNo === 0) {
-            return false;
-        }
-
-        return this.send(
-            packet.makeKickList(broadNo)
-        );
+    sendKickList() {
+        return this.send(packet.makeKickList(
+            this.channel.BNO
+        ));
     }
 
-    async sendIceMode({
-            streamer = true,
-            fanClub = false,
-            supporter = false,
-            topFan = false,
-            subscriber = false,
-            manager = false,
-            setType = 'ice_on'
-        } = {}) {
-        const result = await http.postIceMode({
-            broadNo: this.channel?.BNO,
-            userId: this.userId,
-            auth: setType === 'ice_on'
-                ? this.makeIceAuth({
-                streamer,
-                fanClub,
-                supporter,
-                topFan,
-                subscriber,
-                manager
-            }) : 0,
-            type: setType,
-            options: {
-                cookie: this.cookie
-            },
-        });
-
-        return result;
-    }
-
-    async sendIceOption(count = 0, date = 0) {
-        const result = await http.postIceOption({
-            count,
-            date,
-            options: {
+    async sendIceMode(type, auth = 0) {
+        const result = await http.postIceMode(
+            this.channel.BNO,
+            this.userId,
+            type,
+            auth,
+            {
                 cookie: this.cookie
             }
-        });
+        );
 
         return result;
     }
@@ -421,7 +400,7 @@ export class SoopClient {
         supporter = false,
         topFan = false,
         subscriber = false,
-        manager = false,
+        manager = true,
     } = {}) {
         let mask = 0;
 
@@ -435,56 +414,48 @@ export class SoopClient {
         return mask;
     }
 
-    sendSubtitle(value = 0) {
-        if (!value) {
-            return false;
-        }
-
-        return this.send(
-            packet.makeSubtitle(value)
+    async sendIceOption(count = 0, date = 1) {
+        const result = await http.postIceOption(
+            count,
+            date,
+            {
+                cookie: this.cookie
+            }
         );
+
+        return result;
+    }
+
+    sendSubtitle(value = 0) {
+        return this.send(packet.makeSubtitle(
+            value
+        ));
     }
 
     sendUserList() {
-        return this.send(
-            packet.makeUserList()
-        );
+        return this.send(packet.makeUserList());
     }
 
-    async sendOgq(message = '', ogqId = '', ogqNo = 0) {
-        const result = await http.postOgqChat({
-            chatIp: this.channel?.CHIP,
-            chatPort: this.channel?.CHPT,
-            chatNo: this.channel?.CHATNO,
-            chatId: this.channel?.USERID,
+    async sendOgq(message = '', ogqId = '', index = 1) {
+        const result = await http.postOgqChat(
+            this.channel,
+            this.userId,
             message,
-            streamerId: this.channel?.BJID,
-            ogqId: ogqId,
-            ogqNumbering: ogqNo,
-            ogqGroupId: 0,
-            gemUse: 'N',
-            apiKey: md5(`${this.userId}`
-                + `${this.channel?.CHATNO}`
-            ),
-            serviceLocation: 'live',
-            options: {
+            ogqId,
+            index,
+            {
                 cookie: this.cookie
             }
-        });
+        );
+
         return result;
     }
 
     sendSlowMode(count = 0) {
-        if (!count) {
-            return false;
-        }
-
-        return this.send(
-            packet.makeSlowMode(
-                this.channel.CHATNO,
-                count
-            )
-        );
+        return this.send(packet.makeSlowMode(
+            this.channel.CHATNO,
+            count
+        ));
     }
 
     getDefaultBalloonStep(count = 0) {
@@ -589,7 +560,7 @@ export class SoopClient {
     }
 
     makeTierUrl(tier = 1, month = 0) {
-        const pcon = this.channel?.PCON_OBJECT;
+        const pcon = this.channel.PCON_OBJECT;
 
         if (!pcon || typeof pcon !== 'object') {
             return '';
@@ -622,7 +593,7 @@ export class SoopClient {
 
     makeOgqUrl(index = 0, subId = 1) {
         const ogq = this.ogq;
-        const item = ogq?.data?.[index];
+        const item = ogq.data?.[index];
 
         if (!ogq?.img_domain) {
             return '';
@@ -710,12 +681,4 @@ export class SoopClient {
 
         return true;
     }
-}
-
-export function md5(value) {
-    return (crypto
-        .createHash('md5')
-        .update(value)
-        .digest('hex')
-    );
 }

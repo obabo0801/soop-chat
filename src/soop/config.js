@@ -192,15 +192,3 @@ export const ICE_AUTH = {
     SUBSCRIBER: 256,
     MANAGER: 512,
 };
-
-export const SUBTITLE = {
-    [-1]: { label: 'OFF', code: 'off' },
-    0: { label: '한국어', code: 'ko_KR' },
-    1: { label: 'English', code: 'en_US' },
-    2: { label: 'ไทย', code: 'th_TH' },
-    3: { label: '中文 繁體', code: 'zh_TW' },
-    4: { label: '中文 简体', code: 'zh_CN' },
-    5: { label: '日本語', code: 'ja_JP' },
-    6: { label: 'Tiếng Việt', code: 'vi_VN' },
-    7: { label: 'Indonesia', code: 'id_ID' }
-}

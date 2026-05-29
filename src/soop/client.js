@@ -40,6 +40,7 @@ export class SoopClient {
 
         this.ping = null;
 
+        this.info = null;
         this.emoticon = null;
         this.recent = null;
         this.signature = null;
@@ -181,7 +182,13 @@ export class SoopClient {
         }
 
         await this.loadAssets();
-        
+
+        if (this.info?.IS_LOGIN === 1) {
+            console.log('로그인');
+        } else {
+            console.log('비로그인');
+        }
+
         const url = this.makeChatUrl(
             this.channel
         );
@@ -261,33 +268,35 @@ export class SoopClient {
     }
 
     async loadAssets() {
-        const emoticon = (
-            await http.getEmoticon(
-            { cookie: this.cookie }
-        ));
+        const options = {
+            cookie: this.cookie
+        };
+
+        const [
+            info, emo, rec, sig, ogq
+        ] = await Promise.all([
+            http.getPrivateInfo(
+                options
+            ),
+            http.getEmoticon(options),
+            http.getRecent(options),
+            http.getSignature(
+                this.streamerId,
+                options
+            ),
+            http.postOgqList(
+                this.streamerId,
+                options
+            ),
+        ]);
+
+        this.info = info;
         this.emoticon = (
             this.makeEmoticon(
-            emoticon
+            emo
         ));
-
-        const recent = (
-            await http.getRecent(
-            { cookie: this.cookie }
-        ));
-        this.recent = recent;
-
-        const signature = (
-            await http.getSignature(
-            this.streamerId,
-            { cookie: this.cookie }
-        ));
-        this.signature = signature;
-
-        const ogq = (
-            await http.postOgqList(
-            this.streamerId,
-            { cookie: this.cookie }
-        ));
+        this.recent = rec;
+        this.signature = sig;
         this.ogq = ogq;
 
         return true;
@@ -415,7 +424,7 @@ export class SoopClient {
         ));
     }
 
-    async sendIceMode(type, auth = 0) {
+    async sendIceMode(type, auth = 0) { 
         const result = (
             await http.postIceMode(
             this.channel.BNO,
@@ -482,6 +491,21 @@ export class SoopClient {
         ));
 
         return result;
+    }
+
+    getChatAssets(data = {}) {
+        const emoticons = this.findEmoticons(
+            data.message
+        );
+
+        const tier = Number(data.tier) || 0;
+        const subMonth = Number(data.subMonth) || 0;
+
+        const tierUrl = tier > 0
+            ? this.makeTierUrl(tier, subMonth)
+            : '';
+
+        return { emoticons, tier, subMonth, tierUrl }
     }
 
     makeBalloonUrl(data = {}) {
@@ -597,7 +621,7 @@ export class SoopClient {
 
     makeOgqUrl(index = 0, subId = 1) {
         const ogq = this.ogq;
-        const item = ogq.data?.[index];
+        const item = ogq?.data?.[index];
 
         if (!ogq?.img_domain || !item) {
             return '';
@@ -630,8 +654,8 @@ export class SoopClient {
 
         if (!section) continue;
 
-        for (const group of section.groups) {
-        for (const emoticon of group.emoticons) {
+        for (const group of section.groups || []) {
+        for (const emoticon of group.emoticons || []) {
 
         if (emoticon.isDeprecated) {
             continue;

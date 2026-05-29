@@ -1,7 +1,6 @@
 import {
     DELIMITER,
-    SVC,
-    SUBTITLE
+    SVC
 } from '#soop/config';
 
 export function makePacket(service, fields = []) {
@@ -178,10 +177,6 @@ export function makeUserList() {
 }
 
 export function makeSubtitle(index = 0) {
-    if (!SUBTITLE[index]) {
-        return null;
-    }
-
     const fields = [
         index,
     ];

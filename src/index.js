@@ -166,7 +166,7 @@ const client = new SoopClient({
             return;
         }
 
-        const emoticons = client.findEmoticonsInMessage(
+        const emoticons = client.findEmoticons(
             data.message,
             client.emoticonMap
         );
@@ -269,7 +269,7 @@ const client = new SoopClient({
     });
 
     client.on('adInBroad', (data) => {
-        console.log('[AD_IN_BROAD_JSON]', data);
+        log.debug('[AD_IN_BROAD_JSON]', data);
         if (data.ad_in_room === 1) {
             log.warn('[알림]', '쉬는시간이 설정되었습니다.\n쉬는시간에도 채팅입력이 가능합니다.');
         } else {
@@ -390,7 +390,7 @@ const client = new SoopClient({
     });
 
     await client.connect();
-    await client.sendSubTitle(0);
+    await client.sendSubtitle(0);
 })();
 
 async function command(input) {
@@ -434,7 +434,7 @@ async function command(input) {
         const userName = rest[1];
         const index = 1;
         const message = rest.slice(2).join(' ');
-        await client.sendSetKick(userId, userName, index, message);
+        await client.sendKick(userId, userName, index, message);
         break;
     }
     
@@ -443,26 +443,26 @@ async function command(input) {
         const userName = rest[1];
         const index = 0;
         const message = rest.slice(2).join(' ');
-        await client.sendSetKick(userId, userName, index, message);
+        await client.sendKick(userId, userName, index, message);
         break;
     }
     
     case '/채금': {
         const userId = rest[0];
         const message = rest.slice(1).join(' ');
-        const result = await client.sendSetDumb(userId, message);
-        console.log(result);
+        const result = await client.sendDumb(userId, message);
+        log.debug(result);
         break;
     }
     
     case '/자막': {
         const r = rest[0];
-        await client.sendSubTitle(Number(r));
+        await client.sendSubtitle(Number(r));
         break;
     }
     
     case '/인원': {
-        await client.sendKickUserList(client.channel?.BNO);
+        await client.sendKickList(client.channel?.BNO);
         break;
     }
 
@@ -526,7 +526,7 @@ async function command(input) {
         }
         const userId = client.pollData.streamerId;
         const surveyNo = client.pollData.no;
-        const message = rest[0]
+        const message = rest[0];
 
         let result;
         if (!message) {
@@ -557,7 +557,7 @@ async function command(input) {
     }
 
     case '/저속모드': {
-        client.sendslowMode(...rest);
+        client.sendSlowMode(...rest);
         break;
     }
 

@@ -1,6 +1,6 @@
 import {
-    SVC,
     DELIMITER,
+    SVC,
     SUBTITLE
 } from '#soop/config';
 
@@ -29,11 +29,11 @@ function toBody(fields = []) {
     return Buffer.concat(chunks);
 }
 
-export function svcCode(value) {
+export function makeSvcCode(value) {
     return String(value).padStart(4, '0');
 }
 
-export function bodySize(body) {
+export function makeBodySize(body) {
     return String(body.length).padStart(6, '0')
 }
 
@@ -43,15 +43,10 @@ export function makePacket(service, fields = []) {
     const header = (
         DELIMITER.ESC
         + DELIMITER.TAB
-        + svcCode(service)
-        + bodySize(body)
+        + makeSvcCode(service)
+        + makeBodySize(body)
         + '00'
     );
-
-//    console.log('[SEND]', {
-//        header: visible(header),
-//        body: visible(body)
-//    });
 
     return Buffer.concat([
         Buffer.from(header, 'binary'),
@@ -115,7 +110,7 @@ export function makePlayLog(
     ].join('');
 }
 
-export function chat(message = '') {
+export function makeChat(message = '') {
     const fields = [
         message,
         0
@@ -124,7 +119,7 @@ export function chat(message = '') {
     return makePacket(SVC.CHAT, fields);
 }
 
-export function managerChat(message = '') {
+export function makeManagerChat(message = '') {
     const fields = [
         message
     ];
@@ -132,7 +127,7 @@ export function managerChat(message = '') {
     return makePacket(SVC.MANAGER_CHAT, fields);
 }
 
-export function directChat(message = '', targetId = '') {
+export function makeDirectChat(message = '', targetId = '') {
     const fields = [
         message,
         targetId
@@ -141,24 +136,24 @@ export function directChat(message = '', targetId = '') {
     return makePacket(SVC.DIRECT_CHAT, fields);
 }
 
-export function slowMode(chatno = 0, count = 0) {
+export function makeSlowMode(chatNo = 0, count = 0) {
     const fields = [
-        chatno,
+        chatNo,
         count
     ];
 
     return makePacket(SVC.SLOW_MODE, fields);
 }
 
-export function kickUserList(bno = 0) {
+export function makeKickList(broadNo = 0) {
     const fields = [
-        bno
+        broadNo
     ];
 
     return makePacket(SVC.KICK_USER_LIST, fields);
 }
 
-export function login(ticket = '') {
+export function makeLogin(ticket = '') {
     const fields = [
         ticket,
         '',
@@ -168,7 +163,7 @@ export function login(ticket = '') {
     return makePacket(SVC.LOGIN, fields);
 }
 
-export function joinChannel(
+export function makeJoinChannel(
         channel, password = '', uuid = ''
     ) {
     const mode = makePayload({
@@ -191,7 +186,7 @@ export function joinChannel(
     return makePacket(SVC.JOIN_CHANNEL, fields);
 }
 
-export function setUserFlag(synAck = '') {
+export function makeUserFlag(synAck = '') {
     const fields = [
         synAck,
         0
@@ -200,7 +195,7 @@ export function setUserFlag(synAck = '') {
     return makePacket(SVC.SET_USER_FLAG, fields);
 }
 
-export function translation(message = '') {
+export function makeTranslation(message = '') {
     const fields = [
         1,
         1,
@@ -211,11 +206,11 @@ export function translation(message = '') {
     return makePacket(SVC.TRANSLATION, fields);
 }
 
-export function keepAlive() {
+export function makeKeepAlive() {
     return makePacket(SVC.KEEPALIVE);
 }
 
-export function userList() {
+export function makeUserList() {
     return makePacket(SVC.CHUSER);
 }
 
@@ -231,7 +226,7 @@ export function makeSubtitle(value = 0) {
     return makePacket(SVC.USER_LANG_SET, fields);
 }
 
-export function setDumb(userId = '', message = '') {
+export function makeDumb(userId = '', message = '') {
     const fields = [
         userId,
         message
@@ -240,12 +235,15 @@ export function setDumb(userId = '', message = '') {
     return makePacket(SVC.SET_DUMB, fields);
 }
 
-export function setKick(userId = '', userName = '', managerId = '', bno = 0, index = 0, message = '') {
+export function makeKick(
+        userId = '', userName = '', managerId = '',
+        broadNo = 0, index = 0, message = ''
+    ) {
     const fields = [
         userId,
         userName,
         managerId,
-        bno,
+        broadNo,
         index,
         message
     ]; 
@@ -253,9 +251,11 @@ export function setKick(userId = '', userName = '', managerId = '', bno = 0, ind
     return makePacket(SVC.KICK_AND_CANCEL, fields);
 }
 
-export function addBlack(bno = 0, managerId = '', userId = '') {
+export function makeBlack(
+        broadNo = 0, managerId = '', userId = ''
+    ) {
     const fields = [
-        bno,
+        broadNo,
         managerId,
         userId
     ]; 

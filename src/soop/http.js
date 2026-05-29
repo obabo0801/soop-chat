@@ -273,17 +273,17 @@ export async function getStation(
 }
 
 export async function postLiveInfo(
-        userId, options = {}
+        streamerId, options = {}
     ) {
     const url = new URL(
         `/afreeca/player_live_api.php`,
         DOMAIN.live
     );
 
-    url.searchParams.set('bjid', userId);
+    url.searchParams.set('bjid', streamerId);
 
     const body = new URLSearchParams({
-        bid: userId,
+        bid: streamerId,
         bno: 0,
         type: 'live',
         pwd: '',

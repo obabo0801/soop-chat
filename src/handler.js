@@ -1,11 +1,11 @@
 import {
-    SVC,
+    DOMAIN,
     DELIMITER,
+    SVC,
     USER_FLAG1,
     USER_FLAG2,
     ICE_AUTH,
     SUBTITLE,
-    DOMAIN
 } from '#soop/config';
 
 import * as log from '#utils/log';
@@ -140,7 +140,7 @@ export function packet(soop, packet) {
             const userId = packet.fields[1];
             const userName = packet.fields[2];
 
-            if (flag.isBlockt) {
+            if (flag.isBlock) {
                 soop.emit('alarm', `${userName}(${userId})님이 귓속말 수신 거부 하셨습니다.`);
             } else {
                 soop.emit('alarm', `${userName}(${userId})님이 귓속말 수신 허용 하셨습니다.`);
@@ -163,7 +163,7 @@ export function packet(soop, packet) {
             const userId = packet.fields[1];
             const userName = packet.fields[2];
 
-            if (flag.isBlockt) {
+            if (flag.isBlock) {
                 soop.emit('alarm', `${userName}(${userId})님이 귓속말 수신 거부 하셨습니다.`);
             } else {
                 soop.emit('alarm', `${userName}(${userId})님이 귓속말 수신 허용 하셨습니다.`);
@@ -337,7 +337,7 @@ export function packet(soop, packet) {
 
     // 52
     case SVC.BDM_ADD_BLACK_INFO: {
-        console.log('[블랙]', packet.fields);
+        log.debug('[블랙]', packet.fields);
         break;
     }
 
@@ -358,13 +358,13 @@ export function packet(soop, packet) {
 
     // 76
     case SVC.KICK_AND_CANCEL: {
-        console.log('[강퇴]', packet.fields);
+        log.debug('[강퇴]', packet.fields);
 
         const type = Number(packet.fields[4]);
         if (type === 0) {
-            console.log('[강퇴]', packet.fields);
+            log.debug('[강퇴]', packet.fields);
         } else {
-            console.log('[강퇴 취소]', packet.fields);
+            log.debug('[강퇴 취소]', packet.fields);
         }
 
         const type2 = Number(packet.fields[0]);
@@ -616,7 +616,7 @@ export function packet(soop, packet) {
 
     // 125
     case SVC.MISSION_SETTLE: {
-        console.log('[MISSION_SETTLE]', packet.fields);
+        log.debug('[MISSION_SETTLE]', packet.fields);
         break;
     }
 
@@ -742,7 +742,7 @@ export function checkFlag1(flag1 = 0) {
         isQuickView: hasFlag(flag1, USER_FLAG1.QUICKVIEW),
         isMobileWeb: hasFlag(flag1, USER_FLAG1.MOBILE_WEB),
         isNightBot: hasFlag(flag1, USER_FLAG1.NIGHTBOT),
-        isBlockt: hasFlag(flag1, USER_FLAG1.BLOCK)
+        isBlock: hasFlag(flag1, USER_FLAG1.BLOCK)
     };
 }
 

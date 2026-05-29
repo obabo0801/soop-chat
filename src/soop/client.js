@@ -4,9 +4,9 @@ import * as handler from '#handler';
 import * as log from '#utils/log';
 
 import {
-    SVC,
     DOMAIN,
     DELIMITER,
+    SVC,
     ICE_AUTH
 } from '#soop/config';
 
@@ -27,7 +27,7 @@ export class SoopClient {
 
         this.streamerId = null;
         this.userId = null;
-        this.usefFlag = null;
+        this.userFlag = null;
 
         this.userList = new Map();
         this.events = new Map();
@@ -219,6 +219,7 @@ export class SoopClient {
         });
 
         this.socket.on('error', error => {
+            clearTimeout(timeout);
             this.emit('error', error);
             reject(error);
         });
@@ -247,13 +248,13 @@ export class SoopClient {
 
     sendLogin() {
         return this.send(
-            packet.login(this.channel?.TK || '')
+            packet.makeLogin(this.channel?.TK || '')
         );
     }
 
     sendJoinChannel(password = '') {
         return this.send(
-            packet.joinChannel(
+            packet.makeJoinChannel(
                 this.channel,
                 password,
                 this.cookie?._au || this.uuid
@@ -262,12 +263,7 @@ export class SoopClient {
     }
 
     sendPing() {
-        if (!this.isOpen(this.socket)) {
-            return false;
-        }
-
-        this.send(packet.keepAlive());
-        return true;
+        this.send(packet.makeKeepAlive());
     }
 
     startPing() {
@@ -288,22 +284,22 @@ export class SoopClient {
     }
 
     sendChat(message = '') {
-        if (!message && !this.isOpen(this.socket)) {
+        if (!message) {
             return false;
         }
 
         return this.send(
-            packet.chat(message)
+            packet.makeChat(message)
         );
     }
 
     sendManagerChat(message = '') {
-        if (!message && !this.isOpen(this.socket)) {
+        if (!message) {
             return false;
         }
 
         return this.send(
-            packet.managerChat(message)
+            packet.makeManagerChat(message)
         );
     }
 
@@ -311,81 +307,69 @@ export class SoopClient {
         if (!message && !targetId) {
             return false;
         }
-        if (!this.isOpen(this.socket)) {
-            return false;
-        }
 
         return this.send(
-            packet.directChat(message, targetId)
+            packet.makeDirectChat(message, targetId)
         );
     }
 
     sendTranslation(message = '') {
-        if (!message && !this.isOpen(this.socket)) {
+        if (!message) {
             return false;
         }
 
         return this.send(
-            packet.translation(message)
+            packet.makeTranslation(message)
         );
     }
 
     sendUserFlag(flag = '') {
-        if (!flag && !this.isOpen(this.socket)) {
+        if (!flag) {
             return false;
         }
 
         return this.send(
-            packet.setUserFlag(flag)
+            packet.makeUserFlag(flag)
         );
     }
 
-    sendSetDumb(userId = '', message = '') {
+    sendDumb(userId = '', message = '') {
         if (!userId && !message) {
             return false;
         }
-        if (!this.isOpen(this.socket)) {
-            return false;
-        }
 
         return this.send(
-            packet.setDumb(userId, message)
+            packet.makeDumb(userId, message)
         );
     }
 
-    sendSetKick(userId = '', userName = '', index = 0, message = '') {
+    sendKick(userId = '', userName = '', index = 0, message = '') {
         if (!userId || !userName) {
             return false;
         }
-        if (!this.isOpen(this.socket)) {
-            return false;
-        }
 
         return this.send(
-            packet.setKick(userId, userName, this.userId, this.channel?.BNO, index, message)
+            packet.makeKick(userId, userName, this.userId, this.channel?.BNO, index, message)
         );
     }
 
-    sendAddBlack(userId = '', managerId = '') {
+    sendBlack(userId = '', managerId = '') {
         if (!userId && !managerId) {
             return false;
         }
-        if (!this.isOpen(this.socket)) {
-            return false;
-        }
 
         return this.send(
-            packet.addBlack(this.channel.BNO, managerId, userId)
+            packet.makeBlack(this.channel?.BNO, managerId, userId)
         );
     }
 
-    sendKickUserList(bano = 0) {
-        if (bano === 0 && !this.isOpen(this.socket)) {
+    sendKickList(broadNo = 0) {
+        if (broadNo === 0) {
             return false;
         }
 
         return this.send(
-            packet.kickUserList(bano)
+            packet.makeKickList(broadNo)
         );
     }
 
@@ -402,7 +386,7 @@ export class SoopClient {
             broadNo: this.channel?.BNO,
             userId: this.userId,
             auth: setType === 'ice_on'
-                ? this.makeIceAuthMask({
+                ? this.makeIceAuth({
                 streamer,
                 fanClub,
                 supporter,
@@ -431,7 +415,7 @@ export class SoopClient {
         return result;
     }
 
-    makeIceAuthMask({
+    makeIceAuth({
         streamer = true,
         fanClub = false,
         supporter = false,
@@ -451,26 +435,8 @@ export class SoopClient {
         return mask;
     }
 
-    makeIceAuthString({
-        streamer = true,
-        fanClub = false,
-        supporter = false,
-        topFan = false,
-        subscriber = false,
-        manager = false,
-    } = {}) {
-        return [
-            streamer ? '1' : '0',
-            fanClub ? '1' : '0',
-            supporter ? '1' : '0',
-            topFan ? '1' : '0',
-            subscriber ? '1' : '0',
-            manager ? '1' : '0',
-        ].join('');
-    }
-
-    sendSubTitle(value = 0) {
-        if (!value && !this.isOpen(this.socket)) {
+    sendSubtitle(value = 0) {
+        if (!value) {
             return false;
         }
 
@@ -481,7 +447,7 @@ export class SoopClient {
 
     sendUserList() {
         return this.send(
-            packet.userList()
+            packet.makeUserList()
         );
     }
 
@@ -508,13 +474,13 @@ export class SoopClient {
         return result;
     }
 
-    sendslowMode(count = 0) {
-        if (!count && !this.isOpen(this.socket)) {
+    sendSlowMode(count = 0) {
+        if (!count) {
             return false;
         }
 
         return this.send(
-            packet.slowMode(
+            packet.makeSlowMode(
                 this.channel.CHATNO,
                 count
             )
@@ -719,7 +685,7 @@ export class SoopClient {
         return map;
     }
 
-    findEmoticonsInMessage(message = '', emoticonMap = new Map()) {
+    findEmoticons(message = '', emoticonMap = new Map()) {
         const result = [];
 
         message = String(message || '');

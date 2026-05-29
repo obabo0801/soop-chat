@@ -20,7 +20,7 @@ const cookie = ''
 const password = '';
 
 const client = new SoopClient({
-    cookie, password
+    streamerId, password, cookie
 });
 
 (async () => {
@@ -33,26 +33,6 @@ const client = new SoopClient({
         log.warn(`[정보] ${info.LOGIN_NICK}(${info.LOGIN_ID}) 로그인`);
     } else {
         log.warn('[정보] 비로그인');
-    }
-
-    const live = await http.postLiveInfo(streamerId, {
-        cookie: client.cookie
-    })
-    client.channel = live;
-
-    if (live?.TITLE) {
-        log.info(`[제목] ${live.TITLE}`);
-
-        if (live.RESULT === 1) {
-            log.info(`[스트리머] ${live.BJNICK}(${live.BJID})`);
-        } else {
-            log.warn(`[스트리머] ${live.RESULT}`);
-        }
-        if (live.BPWD) {
-            log.warn(`[비밀번호] ${live.BPWD}`);
-        }
-    } else {
-        log.warn('[정보] 방송 정보 없음');
     }
 
     client.on('open', () => {

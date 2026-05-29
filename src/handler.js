@@ -382,6 +382,12 @@ export function dispatch(soop, packet) {
         break;
     }
 
+    // 86
+    case SVC.VOD_BALLOON: {
+        console.log('[VOD_BALLOON]', packet.fields);
+        break;
+    }
+
     // 87
     case SVC.ADCON_EFFECT: {
         const data = {

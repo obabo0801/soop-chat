@@ -15,9 +15,6 @@ import {
 
 export class SoopClient {
     constructor(options = {}) {
-        this.cookie = options.cookie;
-        this.password = options.password;
-
         this.uuid = crypto
             .randomBytes(16)
             .toString('hex');
@@ -25,9 +22,18 @@ export class SoopClient {
         this.socket = null;
         this.channel = null;
 
-        this.streamerId = null;
+        this.streamerId = (
+            options.streamerId
+        );
         this.userId = null;
+        this.password = (
+            options.password
+        );
         this.userFlag = null;
+
+        this.cookie = (
+            options.cookie
+        );
 
         this.userList = new Map();
         this.events = new Map();
@@ -163,6 +169,8 @@ export class SoopClient {
             password = this.password;
         }
         this.password = password;
+
+        if (!streamerId) return false;
 
         if (!this.channel) {
             this.channel = (

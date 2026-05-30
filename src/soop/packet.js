@@ -28,7 +28,6 @@ export function makePayload(data) {
         .filter(([, value]) => (
             value !== undefined
             && value !== null
-            && value !== ''
         ))
         .map(([key, value]) => (
             `${key}${dc1}`
@@ -45,31 +44,31 @@ export function makePlayLog(channel, uuid) {
         ack,
         `&${ack}set_bps${ack}=`
             + `${ack}${channel.BPS}`,
-        `&${ack}view_bps${ack}=`
+        `${ack}&${ack}view_bps${ack}=`
             + `${ack}${channel.BPS}`,
-        `&${ack}quality${ack}=`
+        `${ack}&${ack}quality${ack}=`
             + `${ack}ori`,
-        `&${ack}uuid${ack}=`
+        `${ack}&${ack}uuid${ack}=`
             + `${ack}${uuid}`,
-        `&${ack}geo_cc${ack}=`
+        `${ack}&${ack}geo_cc${ack}=`
             + `${ack}${channel.geo_cc}`,
-        `&${ack}geo_rc${ack}=`
+        `${ack}&${ack}geo_rc${ack}=`
             + `${ack}${channel.geo_rc}`,
-        `&${ack}acpt_lang${ack}=`
+        `${ack}&${ack}acpt_lang${ack}=`
             + `${ack}${channel.STRM_LANG_TYPE}`,
-        `&${ack}svc_lang${ack}=`
+        `${ack}&${ack}svc_lang${ack}=`
             + `${ack}${channel.STRM_LANG_TYPE}`,
-        `&${ack}is_iframeapi${ack}=`
+        `${ack}&${ack}is_iframeapi${ack}=`
             + `${ack}false`,
         channel.join_cc
-            ? `&${ack}join_cc${ack}=`
+            ? `${ack}&${ack}join_cc${ack}=`
                 + `${ack}${channel.join_cc}`
             : '',
-        `&${ack}subscribe${ack}=`
+        `${ack}&${ack}subscribe${ack}=`
             + `${ack}${channel.SUB_PAY_CNT}`,
-        `&${ack}lowlatency${ack}=`
+        `${ack}&${ack}lowlatency${ack}=`
             + `${ack}1`,
-        `&${ack}mode${ack}=`
+        `${ack}&${ack}mode${ack}=`
             + `${ack}landing`
     ].join('');
 }
@@ -121,18 +120,18 @@ export function makeLogin(ticket) {
     const fields = [
         ticket,
         '',
-        16
+        524288 + 16
     ];
 
     return makePacket(SVC.LOGIN, fields);
 }
 
-export function makeJoinChannel(channel, password, uuid) {
+export function makeJoinChannel(channel, pver, password, uuid) {
     const mode = makePayload({
         log: makePlayLog(channel, uuid),
         pwd: password,
         auth_info: 'NULL',
-        pver: 0,
+        pver: pver,
         access_system: 'html5',
         nation_lang: channel.STRM_LANG_TYPE
     });
@@ -157,10 +156,18 @@ export function makeUserFlag(flag) {
     return makePacket(SVC.SET_USER_FLAG, fields);
 }
 
-export function makeTranslation(message) {
+export function makeClubColor(color) {
+    const fields = [
+        color
+    ];
+
+    return makePacket(SVC.CLUB_COLOR, fields);
+}
+
+export function makeTranslation(message, mode = 1) {
     const fields = [
         1,
-        1,
+        mode,
         message,
         3
     ];

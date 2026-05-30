@@ -21,6 +21,17 @@ export const SUBTITLE_LANG = {
     7: { label: 'Indonesia', code: 'id_ID' }
 }
 
+export const SUPPORTED_LANG = {
+    0: { label: '🌏', code: 'auto' },
+    1: { label: 'English', code: 'en_US' },
+    2: { label: '日本語', code: 'ja_JP' },
+    3: { label: '한국어', code: 'ko_KR' },
+    4: { label: '中文 简体', code: 'zh_CN' },
+    5: { label: '中文 繁體', code: 'zh_TW' },
+    6: { label: 'ไทย', code: 'th_TH' },
+    7: { label: 'Tiếng Việt', code: 'vi_VN' },
+}
+
 export function dispatch(soop, pkt) {
     const fields = pkt.fields;
 
@@ -31,7 +42,11 @@ export function dispatch(soop, pkt) {
         soop.userId = fields[0];
         soop.userFlag = fields[1];
 
-        soop.sendJoinChannel(soop.password);
+        soop.sendJoinChannel(
+            soop.password, soop.pver
+        );
+
+        soop.emit('rule', soop.rule);
         break;
     }
 
@@ -52,7 +67,8 @@ export function dispatch(soop, pkt) {
 
         soop.emit('join', {
             chatNo: soop.channel.CHATNO,
-            streamerId: soop.streamerId,
+            bjId: soop.channel.BJNICK,
+            bkName: soop.channel.BJNICK,
             userFlag: soop.userFlag
         });
         break;
@@ -67,6 +83,25 @@ export function dispatch(soop, pkt) {
         });
 
         soop.disconnect();
+        break;
+    }
+
+    // 8
+    case SVC.SET_DUMB: {
+        if (error(fields, 2)) {
+            soop.emit('error', fields[0]);
+            break;
+        }
+
+        soop.emit('dumb', {
+            time: Number(fields[2]),
+            count: Number(fields[3]),
+            adminId: fields[4],
+            userId: fields[0],
+            userName: fields[7],
+            userFlag: fields[1],
+            ...userInfo(fields[1])
+        });
         break;
     }
 
@@ -255,11 +290,33 @@ export function dispatch(soop, pkt) {
         });
         break;
     }
-``
+
     // 94
     case SVC.TRANSLATION_STATE: {
         soop.emit('translationState', {
             index: Number(fields[0])
+        });
+        break;
+    }
+
+    // 95
+    case SVC.TRANSLATION: {
+        if (error(fields, 2)) {
+            soop.emit('error', fields[0]);
+            break;
+        }
+        
+        const org = Number(fields[3]);
+        const trans = Number(fields[4]);
+
+        soop.emit('translation', {
+            index: Number(fields[0]),
+            mode: Number(fields[1]),
+            message: fields[2],
+            org,
+            before: SUPPORTED_LANG[org],
+            trans,
+            after: SUPPORTED_LANG[trans]
         });
         break;
     }
@@ -318,7 +375,7 @@ export function dispatch(soop, pkt) {
         let data = null;
 
         try {
-            data = JSON.parse(packet.fields[0]);
+            data = JSON.parse(fields[0]);
         } catch (error) {
             soop.emit('error', error);
         }
@@ -329,10 +386,20 @@ export function dispatch(soop, pkt) {
 
     // 127
     case SVC.CHUSER_EXTEND: {
-        const user = soop.userList.get(fields[0]);
-        Object.assign(user, parseMonth(fields[1]));
+        const userId = fields[0];
+        const user = soop.userList.get(userId);
 
-        soop.userList.set(fields[0], user);
+        if (!user) break;
+
+        Object.assign(
+            user,
+            parseMonth(fields[1])
+        );
+
+        soop.userList.set(
+            userId,
+            user
+        );
         break;
     }
 
@@ -381,16 +448,14 @@ export function userList(soop, fields = []) {
     if (type === 1) {
         for (let i = 1; i < fields.length; i += 3) {
             const id = fields[i];
-            const name = fields[i + 1];
-            const flag = fields[i + 2];
 
             if (!id) continue;
 
             const user = {
                 id,
-                name,
-                flag,
-                ...userInfo(flag)
+                name: fields[i + 1],
+                flag: fields[i + 2],
+                ...userInfo(fields[i + 2])
             };
 
             soop.userList.set(id, user);
@@ -402,20 +467,16 @@ export function userList(soop, fields = []) {
 
     if (type === -1) {
         const id = fields[1];
-        const name = fields[2];
-        const kick = Number(fields[3])
-        const count = Number(fields[4])
-        const flag = fields[5];
 
         if (!id) return users;
 
         const user = {
             id,
-            name,
-            kick,
-            count,
-            flag,
-            ...userInfo(flag)
+            name: fields[2],
+            kick: Number(fields[3]),
+            count: Number(fields[4]),
+            flag: fields[5],
+            ...userInfo(fields[5])
         }
 
         soop.userList.delete(id);

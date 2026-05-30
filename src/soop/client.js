@@ -31,6 +31,14 @@ export class SoopClient {
         );
         this.userFlag = null;
 
+        this.pver = (
+            options.pver
+        );
+
+        this.subtitle = (
+            options.subtitle
+        );
+
         this.cookie = (
             options.cookie
         );
@@ -41,6 +49,7 @@ export class SoopClient {
         this.ping = null;
 
         this.info = null;
+        this.rule = null;
         this.emoticon = null;
         this.recent = null;
         this.signature = null;
@@ -183,12 +192,6 @@ export class SoopClient {
 
         await this.loadAssets();
 
-        if (this.info?.IS_LOGIN === 1) {
-            console.log('로그인');
-        } else {
-            console.log('비로그인');
-        }
-
         const url = this.makeChatUrl(
             this.channel
         );
@@ -273,9 +276,13 @@ export class SoopClient {
         };
 
         const [
-            info, emo, rec, sig, ogq
+            info, rule, emo, rec, sig, ogq
         ] = await Promise.all([
             http.getPrivateInfo(
+                options
+            ),
+            http.postChatRule(
+                this.streamerId,
                 options
             ),
             http.getEmoticon(options),
@@ -291,13 +298,15 @@ export class SoopClient {
         ]);
 
         this.info = info;
-        this.emoticon = (
-            this.makeEmoticon(
-            emo
-        ));
+        this.rule = rule;
         this.recent = rec;
         this.signature = sig;
         this.ogq = ogq;
+
+        this.emoticon = (
+            this.makeEmoticon(
+            emo, sig
+        ));
 
         return true;
     }
@@ -331,9 +340,9 @@ export class SoopClient {
         ));
     }
 
-    sendJoinChannel(password = '') {
+    sendJoinChannel(password = '', pver = 2) {
         return this.send(packet.makeJoinChannel(
-            this.channel, password,
+            this.channel, pver, password,
             this.cookie?._au || this.uuid || ''
         ));
     }
@@ -377,15 +386,21 @@ export class SoopClient {
         ));
     }
 
-    sendTranslation(message = '') {
-        return this.send(packet.makeTranslation(
-            message
-        ));
-    }
-
     sendUserFlag(flag = '') {
         return this.send(packet.makeUserFlag(
             flag
+        ));
+    }
+
+    sendClubColor(color = 0) {
+        return this.send(packet.makeClubColor(
+            color
+        ));
+    }
+
+    sendTranslation(message = '', mode = 1) {
+        return this.send(packet.makeTranslation(
+            message, mode
         ));
     }
 
@@ -469,9 +484,9 @@ export class SoopClient {
         return result;
     }
 
-    sendSubtitle(value = 0) {
+    sendSubtitle(index = this.subtitle) {
         return this.send(packet.makeSubtitle(
-            value
+            index
         ));
     }
 
@@ -645,7 +660,7 @@ export class SoopClient {
         ).href;
     }
 
-    makeEmoticon(data = {}) {
+    makeEmoticon(data = {}, signature = []) {
         const map = new Map();
 
         for (const type of ['default', 'subscribe']) {
@@ -667,16 +682,46 @@ export class SoopClient {
             keyword: emoticon.keyword,
             fileName: emoticon.fileName,
             smallUrl: new URL(
-                emoticon.fileName,
-                section.small_url
+                emoticon.fileName, section.small_url
             ).href,
             bigUrl: new URL(
-                emoticon.fileName,
-                section.big_url
-            ).href,
+                emoticon.fileName, section.big_url
+            ).href
         });
 
         }}}
+
+        const url = new URL(
+            `/signature_emoticon/${this.streamerId}/`,
+            DOMAIN.static
+        );
+
+        for (const [tierKey, list] of Object.entries(signature || {})) {
+
+        const tier = Number(tierKey.replace('tier', ''));
+
+        for (const item of list || []) {
+        
+        const title = item.title;
+        const keyword = `/${title}/`;
+
+        map.set(keyword, {
+            type: 'signature',
+            group: tierKey,
+            title,
+            keyword,
+            tier,
+            order: Number(item.order_no),
+            fileName: item.pc_img,
+            smallUrl: new URL(
+                item.mobile_img, url.href
+            ).href,
+            bigUrl: new URL(
+                item.pc_img, url.href
+            ).href
+        });
+
+        }}
 
         return map;
     }

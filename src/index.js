@@ -18,21 +18,39 @@ const streamerId = '';
 // 필요하면 브라우저 쿠키 넣기
 const cookie = ''
 
-// 비밀번호 방송이면 입력
+// 방송 비밀번호
 const password = '';
 
-// 이모티콘 링크 표시 여부
+// 이모티콘 링크 표시
 const isLink = true;
 
+// 프로토콜 옵션
+// 0: 참여자 목록 표시, 입장/퇴장 모두 표시
+// 1: 입장/퇴장 모두 표시
+// 2: 입장/퇴장 열혈 이상 표시
+const pver = 2;
+
+// 자막이 허용된 방송에서 자막 표시
+// (-1: 끄기 / 0: 한국어 / 1: English)
+const subtitle = 0
+
 const client = new SoopClient({
-    streamerId, password, cookie
+    streamerId, password, pver, subtitle, cookie
 });
 
 (async () => {
+
     // open
     client.on('open', () => {
         log.debug('[알림]', '연결 성공');
     });
+
+    // rule
+    client.on('rule', data => {
+        if (data.chat_rule_display > 0) {
+            log.info('[규칙]', `\x1b[1m${data.chat_rule}\x1b[0m`);
+        }
+    })
 
     // quit
     client.on('quit', data => {
@@ -52,7 +70,25 @@ const client = new SoopClient({
             break;
         }
 
-        log.error('[알림]', message.get(data.type));
+        log.error('[알림]', message);
+    });
+
+    // dumb
+    client.on('dumb', data => {
+        let message = '';
+
+        if (data.count > 2) {
+            message = ('님이 채팅금지 횟수 초과로 블라인드 처리 되었습니다. '
+                + `${data.count}초 동안 채팅과 방송화면을 볼 수 없습니다.`
+            );
+        } else {
+            message = `님이 채팅금지(${data.time}초) ${data.count}회가 되었습니다.`;
+        }
+
+        const admin = client.userList.get(data.adminId);
+        const name = admin?.name ? admin.name : data.adminId;
+
+        log.error('[채금]', `\x1b[1m${data.userName}(${data.userId})${message}`, `(처리자: ${name})\x1b[0m`);
     });
 
     // userList
@@ -65,9 +101,11 @@ const client = new SoopClient({
 
         switch (data.type) {
         case 1:
+            message = '님이 대화방에 참여했습니다.';
             break;
 
         case -1:
+            message = '님이 대화방에서 나가셨습니다.';
             break;
 
         case 5:
@@ -75,7 +113,6 @@ const client = new SoopClient({
             break;
         
         default:
-            console.log(data.type, '#');
             message = `님이 강퇴되었습니다. (누적 ${data.user.count}회)`
             break;
         }
@@ -83,18 +120,17 @@ const client = new SoopClient({
         const info = data.type === 1 ? '입장' : '퇴장';
 
         const badge = data.tier
-            ? `${data.user.role}/${data.user.tier}${data.fw}`
+            ? `${data.user.role}/${data.user.tier}${data.user.fw}`
             : data.user.role
         
         message = [
-            `[${info}]`, `[${badge}]`,
-            `${data.user.name}(${data.user.id})${message}`
+            `[${info}]`, `[${badge}]`, `${data.user.name}(${data.user.id})${message}`
         ];
 
         if (data.type > 1) {
             log.error(...message);
         } else {
-//            log.debug(...message);
+            log.debug(...message);
         }
     });
 
@@ -151,7 +187,7 @@ const client = new SoopClient({
             message = `${data.toName}(${data.toId})님에게 귓말 ${data.message}`;
         }
 
-        log.load('[귓속말]', `[${badge}]`, message);
+        log.load('[귓속말]', `\x1b[1m[${badge}]`, `${message}\x1b[0m`);
     });
 
     // userFlag
@@ -169,7 +205,7 @@ const client = new SoopClient({
             ? '님이 매니저가 되셨습니다.'
             : '님이 매니저에서 해임 되셨습니다.';
 
-        log.allim('[알림', `${data.userName}(${data.userId})${message}`);
+        log.allim('[알림', `\x1b[1m${data.userName}(${data.userId})${message}\x1b[0m`);
     });
 
     // nickName
@@ -182,7 +218,7 @@ const client = new SoopClient({
     // iceMode
     client.on('iceMode', data => {
         if (data.index === 0) {
-            log.warn('[얼음]', '채팅을 녹였습니다.');
+            log.allim('[얼음]', '\x1b[1m채팅을 녹였습니다. 채팅에 참여 하실 수 있습니다.\x1b[0m');
             return;
         }
 
@@ -201,9 +237,7 @@ const client = new SoopClient({
             auth.isManagerAllowed && '매니저',
         ].filter(Boolean);
 
-        log.warn('[얼음] 채팅을 얼렸습니다.', names.join(', '));
-
-
+        log.allim('[얼음]', `\x1b[1m채팅을 얼렸습니다. ${names.join(', ')}만 채팅에 참여할 수 있습니다.\x1b[0m`);
     });
 
     // slowMode
@@ -211,18 +245,16 @@ const client = new SoopClient({
         let message = '';
 
         if (data.count > 0) {
-            message = (
-                '저속모드가 활성화되었습니다.',
-                `${data.count}초 간격으로 채팅 입력이 가능합니다.`
-            );
+            message = [
+                '저속모드가 활성화되었습니다.', `${data.count}초 간격으로 채팅 입력이 가능합니다.`
+            ];
         } else {
-            message = (
-                '저속모드가 비활성화되었습니다.',
-                '지연 없이 채팅 입력이 가능합니다.'
-            );
+            message = [
+                '저속모드가 비활성화되었습니다.', '지연 없이 채팅 입력이 가능합니다.'
+            ];
         }
 
-        log.debug('[알림]', message);
+        log.debug('[알림]', ...message);
     });
 
     // managerChat
@@ -245,19 +277,15 @@ const client = new SoopClient({
 
         } //----------------------------------------------------------------
 
-        log.info('\x1b[91m[매니저 채팅]\x1b[0m', `[${badge}]`,
-            `${data.userName}(${data.userId}): ${data.message}`
+        log.info('\x1b[91m[매니저 채팅]\x1b[0m', `\x1b[1m[${badge}]`,
+            `${data.userName}(${data.userId}): ${data.message}\x1b[0m`
         );
     });
 
     // banWord
     client.on('banWord', data => {
         if (data.after.length > 0) {
-            log.debug('[알림]',
-                '금칙어가 적용되어있습니다.',
-                `(금칙어: ${data.after.join(', ')} / `,
-                `대체어: ${data.before})`
-            );
+            log.debug('[알림]', '금칙어가 적용되어있습니다.', `(금칙어: ${data.after.join(', ')} /`, `대체어: ${data.before})`);
         }
     });
 
@@ -269,19 +297,28 @@ const client = new SoopClient({
     // kickState
     client.on('kickState', data => {
         const flag = data.index === 0 ? '켜짐' : '꺼짐';
+
         log.debug('[알림]', `유저에게 강제 퇴장 메시지 표시: ${flag}`);
     });
 
     // translationState
     client.on('translationState', data => {
         const flag = data.index === 1 ? '켜짐' : '꺼짐';
+
         log.debug('[알림]', `채팅 번역 기능: ${flag}`);
+    });
+
+    // translation
+    client.on('translation', data => {
+        log.info('[번역]', `\x1b[1m${data.message} (${data.before.label} → ${data.after.label})\x1b[0m`);
+        
+        if (data.mode === 2) rl.write(data.message);
     });
 
     // notice
     client.on('notice', data => {
         if (data.state === 1) {
-            log.debug('[공지]', `\n${data.message}`);
+            log.info('[공지]', `\x1b[1m${data.message}\x1b[0m`);
         }
     });
 
@@ -302,7 +339,7 @@ const client = new SoopClient({
         }
 
         if (extras.tierUrl) {
-            log.load(`[티어${extras.tier}]`, extras.tierUrl);3
+            log.load(`[티어${extras.tier}]`, extras.tierUrl);
         }
 
         log.warn('[OGQ]', `[${badge}]`,
@@ -317,6 +354,18 @@ const client = new SoopClient({
             );
         }
 
+    });
+
+    // adInBroad
+    client.on('adInBroad', data => {
+        let message = '';
+        if (data.ad_in_room === 1) {
+            message = '쉬는시간이 설정되었습니다. 쉬는시간에도 채팅입력이 가능합니다.';
+        } else {
+            message = '쉬는시간이 종료되었습니다.';
+        }
+
+        log.warn('[알림]', message);
     });
 
     // subtitle
@@ -358,7 +407,10 @@ const client = new SoopClient({
     });
 
     await client.connect();
-    await client.sendSubtitle(0);
+
+//    await client.sendUserList();
+ 
+    await client.sendSubtitle();
 })();
 
 export function shutdown() {
